@@ -289,6 +289,7 @@ kbd{font-family:var(--sans);border:1px solid var(--rule);border-radius:5px;paddi
     <p>The Chāpu tāḷas are kept by beats rather than aṅgas: Khaṇḍa Chāpu (ta-ka · ta-ki-ta, 2 + 3), Miśra Chāpu (ta-ki-ta · ta-ka-di-mi, 3 + 4) and Viloma Chāpu, its reverse (ta-ka-di-mi · ta-ki-ta, 4 + 3). Rūpaka is also often kept as three beats in practice.</p>
     <h3>How to use it</h3>
     <p>Tap any number in the matrix to hear that tāḷa. Follow the wheel and the line of counts beneath it, and try keeping the tāḷam with your own hand. Switch the sound to Konnakol to hear the cycle as spoken strokes. Somewhere in the second or third cycle the counting gives way to listening, and you find yourself waiting for samam.</p>
+    <p class="keys">No sound on an iPhone or iPad? Turn the volume up; the page plays through the media channel, so it should sound even with the ring/silent switch on.</p>
     <p class="keys"><kbd>Space</kbd> play or stop · <kbd>←</kbd> <kbd>→</kbd> change jāti · <kbd>↑</kbd> <kbd>↓</kbd> change tāḷa family</p>
     <button class="go" type="button" id="guideGo">Begin with Ādi</button>
     <div class="src">
@@ -516,12 +517,38 @@ function resetHL(){
 }
 
 /* ---------- audio ---------- */
-let ac=null, nb=null;
+let ac=null, nb=null, keepAlive=null;
+/* iPhone / iPad: Web Audio is silenced by the mute switch and stays locked until a tap.
+   Fixes: ask for the "playback" audio session where supported, keep a silent media
+   element looping (which moves Safari onto the media channel), and play an empty
+   buffer inside the first tap to unlock the context. */
+function silentWavURL(){
+  const rate=8000, n=rate/2, buf=new ArrayBuffer(44+n*2), v=new DataView(buf);
+  const w=(o,str)=>{ for (let i=0;i<str.length;i++) v.setUint8(o+i,str.charCodeAt(i)); };
+  w(0,"RIFF"); v.setUint32(4,36+n*2,true); w(8,"WAVE"); w(12,"fmt "); v.setUint32(16,16,true);
+  v.setUint16(20,1,true); v.setUint16(22,1,true); v.setUint32(24,rate,true); v.setUint32(28,rate*2,true);
+  v.setUint16(32,2,true); v.setUint16(34,16,true); w(36,"data"); v.setUint32(40,n*2,true);
+  return URL.createObjectURL(new Blob([buf],{type:"audio/wav"}));
+}
+function unlockIOS(){
+  try{ if (navigator.audioSession) navigator.audioSession.type = "playback"; }catch(e){}
+  try{
+    if (!keepAlive){ keepAlive = document.createElement("audio"); keepAlive.src = silentWavURL(); keepAlive.loop = true;
+      keepAlive.setAttribute("playsinline",""); keepAlive.preload = "auto"; }
+    const p = keepAlive.play(); if (p && p.catch) p.catch(()=>{});
+  }catch(e){}
+  try{ const b=ac.createBuffer(1,1,22050), s=ac.createBufferSource(); s.buffer=b; s.connect(ac.destination); s.start(0); }catch(e){}
+}
 function audio(){
   if (!ac){ const A=window.AudioContext||window.webkitAudioContext; if (!A) return null; ac=new A();
     nb=ac.createBuffer(1,ac.sampleRate*.5,ac.sampleRate); const d=nb.getChannelData(0); for (let i=0;i<d.length;i++) d[i]=Math.random()*2-1; }
-  if (ac.state==="suspended") ac.resume(); return ac;
+  unlockIOS();
+  if (ac.state!=="running") { const r = ac.resume(); if (r && r.catch) r.catch(()=>{}); }
+  return ac;
 }
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && ac && playing){ try{ ac.resume(); if (keepAlive) keepAlive.play().catch(()=>{}); }catch(e){} }
+});
 function noise(t,f,q,dur,g){ const s=ac.createBufferSource(); s.buffer=nb; const bp=ac.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value=f; bp.Q.value=q;
   const G=ac.createGain(); G.gain.setValueAtTime(g,t); G.gain.exponentialRampToValueAtTime(.001,t+dur); s.connect(bp).connect(G).connect(ac.destination); s.start(t); s.stop(t+dur+.02); }
 function tone(t,f,dur,g,type="sine",f2){ const o=ac.createOscillator(); o.type=type; o.frequency.setValueAtTime(f,t); if (f2) o.frequency.exponentialRampToValueAtTime(f2,t+dur);
@@ -621,6 +648,7 @@ document.addEventListener("keydown", e => {
   const mv = {ArrowLeft:[0,-1],ArrowRight:[0,1],ArrowUp:[-1,0],ArrowDown:[1,0]}[e.key];
   if (mv){ e.preventDefault(); if (st.group){ st.group=null; } else { st.tala=(st.tala+mv[0]+7)%7; st.jati=(st.jati+mv[1]+5)%5; } update(); }
 });
+["touchend","pointerup"].forEach(ev => document.addEventListener(ev, function first(){ audio(); document.removeEventListener(ev, first); }, {once:true, passive:true}));
 update();
 })();
 </script>
