@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RNA Codon Wheel — Interactive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+[data-theme="light"]{--bg:#f7f6f2;--surface:#ffffff;--surface2:#f0efe9;--border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.15);--text:#1a1918;--text2:#6b6a65;--text3:#a09f9a;--pill-bg:#f0efe9;--pill-text:#6b6a65;--pill-border:rgba(0,0,0,0.08);--ring:rgba(0,0,0,0.18);--tick:rgba(0,0,0,0.18);--radial-text:#3d3c38;}
+[data-theme="dark"]{--bg:#141413;--surface:#1e1e1c;--surface2:#252523;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);--text:#e8e7e2;--text2:#8a8984;--text3:#5a5956;--pill-bg:#2e2e2b;--pill-text:#8a8984;--pill-border:rgba(255,255,255,0.08);--ring:rgba(255,255,255,0.22);--tick:rgba(255,255,255,0.2);--radial-text:#b4b2a9;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:16px;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 1rem 4rem;transition:background .25s,color .25s;}
+.page{max-width:1160px;margin:0 auto;}
+
+header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1.75rem;padding-bottom:1rem;border-bottom:1px solid var(--border);}
+.header-left h1{font-size:1.35rem;font-weight:500;letter-spacing:-.02em;}
+.header-left p{font-size:.75rem;color:var(--text3);font-family:'DM Mono',monospace;margin-top:2px;}
+.theme-toggle{display:flex;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:100px;padding:4px;}
+.theme-btn{padding:5px 14px;border-radius:100px;font-size:.75rem;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .18s,color .18s;background:transparent;color:var(--text2);}
+.theme-btn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.1);}
+
+.top-layout{display:grid;grid-template-columns:1fr 320px;gap:2rem;align-items:start;}
+@media(max-width:820px){.top-layout{grid-template-columns:1fr;}}
+
+.wheel-panel{display:flex;flex-direction:column;align-items:center;gap:.9rem;}
+#wheel-wrap{position:relative;width:100%;max-width:580px;}
+#wheel{display:block;width:100%;height:auto;}
+
+.wheel-legend{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;font-size:.7rem;color:var(--text2);}
+.legend-item{display:flex;align-items:center;gap:5px;}
+.legend-swatch{width:11px;height:11px;border-radius:2px;}
+.reset-btn{padding:5px 16px;border:1px solid var(--border2);background:transparent;border-radius:8px;font-size:.76rem;cursor:pointer;color:var(--text2);font-family:'DM Sans',sans-serif;transition:background .12s;}
+.reset-btn:hover{background:var(--surface2);}
+
+.base-key{width:100%;max-width:580px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.85rem 1rem;transition:background .2s;}
+.base-key-title{font-size:.68rem;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.7rem;}
+.base-key-grid{display:flex;flex-direction:column;gap:.5rem;}
+.base-row{display:flex;align-items:flex-start;gap:.7rem;}
+.base-badge{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:600;flex-shrink:0;font-family:'DM Mono',monospace;}
+.base-detail{flex:1;}
+.base-name{font-size:.78rem;font-weight:500;color:var(--text);line-height:1.3;}
+.base-dna{font-size:.72rem;font-weight:400;color:var(--text3);font-family:'DM Mono',monospace;}
+.base-note{font-size:.67rem;color:var(--text3);margin-top:1px;}
+.base-key-note{font-size:.67rem;color:var(--text3);margin-top:.7rem;padding-top:.6rem;border-top:1px solid var(--border);font-style:italic;line-height:1.5;}
+
+.info-bar{width:100%;max-width:580px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.7rem 1rem;font-size:.8rem;color:var(--text2);min-height:50px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;transition:background .2s;}
+.info-bar .codon-disp{font-family:'DM Mono',monospace;font-size:1.25rem;font-weight:500;color:var(--text);letter-spacing:3px;}
+.info-bar .aa-disp{font-size:.9rem;font-weight:500;color:var(--text);}
+.info-bar .sep{color:var(--text3);}
+.info-bar .synonyms{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--text3);}
+
+.side-panel{display:flex;flex-direction:column;gap:1.1rem;}
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.8rem .9rem;transition:background .2s;}
+.stat-label{font-size:.68rem;color:var(--text3);margin-bottom:3px;text-transform:uppercase;letter-spacing:.06em;}
+.stat-value{font-size:1.55rem;font-weight:500;line-height:1;font-family:'DM Mono',monospace;}
+.stat-sub{font-size:.66rem;color:var(--text3);margin-top:3px;font-family:'DM Mono',monospace;}
+.panel-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.9rem 1rem;transition:background .2s;}
+.panel-title{font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.7rem;}
+
+.bar-row{display:flex;align-items:center;gap:7px;margin-bottom:4px;cursor:pointer;padding:3px 4px;border-radius:6px;transition:background .1s,opacity .18s;border:1px solid transparent;}
+.bar-row:hover{background:var(--surface2);}
+.bar-row.cf-active{background:var(--surface2);border-color:var(--border2);}
+.bar-row.cf-faded{opacity:.25;}
+.bar-label{font-size:.68rem;color:var(--text2);width:82px;flex-shrink:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-track{flex:1;height:10px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:3px;}
+.bar-count{font-size:.68rem;color:var(--text3);font-family:'DM Mono',monospace;width:18px;text-align:right;}
+.detail-box{background:var(--surface2);border-radius:10px;padding:.8rem;display:none;margin-top:8px;}
+.detail-box.visible{display:block;}
+.d-name{font-size:.88rem;font-weight:500;}
+.d-meta{font-size:.7rem;color:var(--text2);margin-top:2px;}
+.codon-pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px;}
+.pill{font-family:'DM Mono',monospace;font-size:.68rem;padding:2px 7px;border-radius:4px;background:var(--pill-bg);color:var(--pill-text);border:1px solid var(--pill-border);}
+
+.bottom-section{margin-top:2rem;}
+.bottom-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:.9rem;flex-wrap:wrap;gap:.5rem;}
+.bottom-title{font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;}
+.crossfilter-hint{font-size:.68rem;color:var(--text3);font-style:italic;}
+.aa-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:6px;}
+.aa-card{background:var(--surface2);border-radius:8px;padding:7px 9px;display:flex;align-items:center;gap:7px;cursor:pointer;border:1px solid transparent;transition:border-color .12s,background .12s,opacity .18s,box-shadow .18s;}
+.aa-card:hover{background:var(--surface);border-color:var(--border2);}
+.aa-card.stop-aa{border-left:3px solid #ef4444;border-radius:0 8px 8px 0;}
+.aa-card.start-aa{border-left:3px solid #22c55e;border-radius:0 8px 8px 0;}
+.aa-card.cf-active{background:var(--surface);border-color:var(--border2);box-shadow:0 0 0 2px var(--ring);}
+.aa-card.cf-faded{opacity:.22;}
+.aa-badge{min-width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.63rem;font-weight:600;flex-shrink:0;}
+.aa-name-text{font-size:.67rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.aa-abbr{font-size:.59rem;color:var(--text3);font-family:'DM Mono',monospace;}
+
+#tooltip{position:fixed;pointer-events:none;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:10px 14px;font-size:.78rem;color:var(--text);box-shadow:0 8px 24px rgba(0,0,0,.13);min-width:170px;max-width:220px;z-index:1000;display:none;line-height:1.6;font-family:'DM Sans',sans-serif;}
+#tooltip .tt-name{font-size:.92rem;font-weight:500;}
+#tooltip .tt-abbr{font-size:.7rem;color:var(--text2);margin-top:1px;}
+#tooltip .tt-tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:.66rem;font-weight:500;margin:5px 0 4px;}
+.tag-stop{background:#fee2e2;color:#991b1b;}
+.tag-start{background:#dcfce7;color:#166534;}
+.tag-aa{background:#eff6ff;color:#1e40af;}
+#tooltip .tt-codon-label{font-size:.66rem;color:var(--text3);}
+#tooltip .tt-codons{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--text2);}
+
+.ring-slice{cursor:pointer;transition:opacity .12s;}
+.ring-slice:hover{opacity:.75;}
+.ring-slice.faded{opacity:.12;}
+.ring-slice.active{opacity:1;}
+
+footer{margin-top:2.5rem;padding-top:1rem;border-top:1px solid var(--border);font-size:.7rem;color:var(--text3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+footer a{color:var(--text3);text-decoration:none;}
+footer a:hover{color:var(--text2);}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="header-left">
+      <h1>RNA codon wheel</h1>
+      <p>Standard genetic code · 64 codons · 20 amino acids · 4 bases</p>
+    </div>
+    <div class="theme-toggle">
+      <button class="theme-btn active" data-t="light" onclick="setTheme('light')">Light</button>
+      <button class="theme-btn" data-t="dark" onclick="setTheme('dark')">Dark</button>
+    </div>
+  </header>
+
+  <div class="top-layout">
+    <div class="wheel-panel">
+      <div id="wheel-wrap">
+        <svg id="wheel" viewBox="0 0 700 700" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+
+      <div class="wheel-legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:#93c5fd"></div>U-family</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#6ee7b7"></div>C-family</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#fcd34d"></div>A-family</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#f9a8d4"></div>G-family</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#fca5a5"></div>Stop</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#86efac"></div>Start/Met</div>
+      </div>
+
+      <div class="base-key">
+        <div class="base-key-title">Base key — RNA · DNA</div>
+        <div class="base-key-grid">
+          <div class="base-row">
+            <div class="base-badge" style="background:#bfdbfe;color:#1e3a5f">U</div>
+            <div class="base-detail">
+              <div class="base-name">Uracil <span class="base-dna">→ Thymine (T) in DNA</span></div>
+              <div class="base-note">Pyrimidine · pairs with Adenine</div>
+            </div>
+          </div>
+          <div class="base-row">
+            <div class="base-badge" style="background:#a7f3d0;color:#0f4c35">C</div>
+            <div class="base-detail">
+              <div class="base-name">Cytosine <span class="base-dna">→ Cytosine (C) in DNA</span></div>
+              <div class="base-note">Pyrimidine · pairs with Guanine</div>
+            </div>
+          </div>
+          <div class="base-row">
+            <div class="base-badge" style="background:#fde68a;color:#78350f">A</div>
+            <div class="base-detail">
+              <div class="base-name">Adenine <span class="base-dna">→ Adenine (A) in DNA</span></div>
+              <div class="base-note">Purine · pairs with Uracil (RNA) / Thymine (DNA)</div>
+            </div>
+          </div>
+          <div class="base-row">
+            <div class="base-badge" style="background:#fbcfe8;color:#831843">G</div>
+            <div class="base-detail">
+              <div class="base-name">Guanine <span class="base-dna">→ Guanine (G) in DNA</span></div>
+              <div class="base-note">Purine · pairs with Cytosine</div>
+            </div>
+          </div>
+        </div>
+        <div class="base-key-note">RNA differs from DNA: Uracil (U) replaces Thymine (T). All other bases are identical.</div>
+      </div>
+
+      <div class="info-bar" id="info-bar">
+        <span style="color:var(--text3)">Hover a slice · click to pin · 5′→ 3′ outward</span>
+      </div>
+
+      <button class="reset-btn" id="reset-btn">Reset selection</button>
+    </div>
+
+    <div class="side-panel">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-label">DNA bases</div><div class="stat-value">4</div><div class="stat-sub">A · T · G · C</div></div>
+        <div class="stat-card"><div class="stat-label">RNA bases</div><div class="stat-value">4</div><div class="stat-sub">A · U · G · C</div></div>
+        <div class="stat-card"><div class="stat-label">Total codons</div><div class="stat-value">64</div><div class="stat-sub">4³ triplets</div></div>
+        <div class="stat-card"><div class="stat-label">Amino acids</div><div class="stat-value">20</div><div class="stat-sub">+ 3 stop signals</div></div>
+        <div class="stat-card"><div class="stat-label">Start codon</div><div class="stat-value" style="font-size:1.05rem;padding-top:4px">AUG</div><div class="stat-sub">Met / M</div></div>
+        <div class="stat-card"><div class="stat-label">Stop codons</div><div class="stat-value" style="font-size:1.05rem;padding-top:4px">×3</div><div class="stat-sub">UAA UAG UGA</div></div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title">Codons per amino acid — click to crossfilter</div>
+        <div id="bars"></div>
+        <div class="detail-box" id="detail-box">
+          <div class="d-name" id="d-name"></div>
+          <div class="d-meta" id="d-meta"></div>
+          <div class="codon-pills" id="d-codons"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-section">
+    <div class="bottom-header">
+      <div class="bottom-title">All amino acids</div>
+      <div class="crossfilter-hint">Click any card, bar, or wheel slice to crossfilter</div>
+    </div>
+    <div class="aa-grid" id="aa-grid"></div>
+  </div>
+
+  <footer>
+    <span>Visualization by Lakshmi Ganesan · Built with Claude</span>
+    <span><a href="https://en.wikipedia.org/wiki/DNA_and_RNA_codon_tables" target="_blank">Wikipedia reference</a></span>
+  </footer>
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+const CODON_TABLE={UUU:'Phe',UUC:'Phe',UUA:'Leu',UUG:'Leu',UCU:'Ser',UCC:'Ser',UCA:'Ser',UCG:'Ser',UAU:'Tyr',UAC:'Tyr',UAA:'Stop',UAG:'Stop',UGU:'Cys',UGC:'Cys',UGA:'Stop',UGG:'Trp',CUU:'Leu',CUC:'Leu',CUA:'Leu',CUG:'Leu',CCU:'Pro',CCC:'Pro',CCA:'Pro',CCG:'Pro',CAU:'His',CAC:'His',CAA:'Gln',CAG:'Gln',CGU:'Arg',CGC:'Arg',CGA:'Arg',CGG:'Arg',AUU:'Ile',AUC:'Ile',AUA:'Ile',AUG:'Met',ACU:'Thr',ACC:'Thr',ACA:'Thr',ACG:'Thr',AAU:'Asn',AAC:'Asn',AAA:'Lys',AAG:'Lys',AGU:'Ser',AGC:'Ser',AGA:'Arg',AGG:'Arg',GUU:'Val',GUC:'Val',GUA:'Val',GUG:'Val',GCU:'Ala',GCC:'Ala',GCA:'Ala',GCG:'Ala',GAU:'Asp',GAC:'Asp',GAA:'Glu',GAG:'Glu',GGU:'Gly',GGC:'Gly',GGA:'Gly',GGG:'Gly'};
+const AA_FULL={Phe:'Phenylalanine',Leu:'Leucine',Ser:'Serine',Tyr:'Tyrosine',Stop:'Stop',Cys:'Cysteine',Trp:'Tryptophan',Pro:'Proline',His:'Histidine',Gln:'Glutamine',Arg:'Arginine',Ile:'Isoleucine',Met:'Methionine',Thr:'Threonine',Asn:'Asparagine',Lys:'Lysine',Val:'Valine',Ala:'Alanine',Asp:'Aspartate',Glu:'Glutamate',Gly:'Glycine'};
+const SINGLE={Phe:'F',Leu:'L',Ser:'S',Tyr:'Y',Cys:'C',Trp:'W',Pro:'P',His:'H',Gln:'Q',Arg:'R',Ile:'I',Met:'M',Thr:'T',Asn:'N',Lys:'K',Val:'V',Ala:'A',Asp:'D',Glu:'E',Gly:'G',Stop:'*'};
+const BASES=['U','C','A','G'];
+const RC={U:{r1:'#bfdbfe',r2:'#93c5fd',r3:'#60a5fa',rA:'#93c5fd'},C:{r1:'#a7f3d0',r2:'#6ee7b7',r3:'#34d399',rA:'#6ee7b7'},A:{r1:'#fde68a',r2:'#fcd34d',r3:'#fbbf24',rA:'#fcd34d'},G:{r1:'#fbcfe8',r2:'#f9a8d4',r3:'#f472b6',rA:'#f9a8d4'}};
+const BC={1:'#bfdbfe',2:'#93c5fd',3:'#6ee7b7',4:'#60a5fa',6:'#3b82f6'};
+
+const NS='http://www.w3.org/2000/svg';
+const svg=document.getElementById('wheel');
+const cx=350,cy=350;
+
+const rings=[{i:36,o:82},{i:84,o:148},{i:150,o:205},{i:207,o:256}];
+const TICK_INNER=260, TICK_OUTER=268, LABEL_R=274;
+
+const counts={};Object.values(CODON_TABLE).forEach(a=>{counts[a]=(counts[a]||0)+1;});
+const byAA={};Object.entries(CODON_TABLE).forEach(([c,a])=>{(byAA[a]||(byAA[a]=[])).push(c);});
+
+let pinned=null,activeAA=null;
+const sliceEls={},barRowEls={},aaCardEls={};
+
+function polar(a,r){const rad=(a-90)*Math.PI/180;return[cx+r*Math.cos(rad),cy+r*Math.sin(rad)];}
+function arc(ir,or,sa,ea){
+  const[x1,y1]=polar(sa,or),[x2,y2]=polar(ea,or),[x3,y3]=polar(ea,ir),[x4,y4]=polar(sa,ir);
+  const lg=(ea-sa)>180?1:0;
+  return`M${x1},${y1} A${or},${or},0,${lg},1,${x2},${y2} L${x3},${y3} A${ir},${ir},0,${lg},0,${x4},${y4} Z`;
+}
+function mkT(x,y,t,sz,fw,fill,rot){
+  const el=document.createElementNS(NS,'text');
+  el.setAttribute('x',x);el.setAttribute('y',y);
+  el.setAttribute('text-anchor','middle');el.setAttribute('dominant-baseline','central');
+  el.setAttribute('font-size',sz);el.setAttribute('font-weight',fw);
+  el.setAttribute('fill',fill);el.setAttribute('pointer-events','none');
+  el.setAttribute('font-family',"'DM Sans',sans-serif");
+  if(rot!=null) el.setAttribute('transform',`rotate(${rot},${x},${y})`);
+  el.textContent=t;return el;
+}
+
+function drawWheel(){
+  const g=document.createElementNS(NS,'g');svg.appendChild(g);
+  const aps=360/64;
+
+  // Ring 1 — first base (4 quadrants)
+  BASES.forEach((b1,i1)=>{
+    const sa=i1*90,ea=sa+90;
+    const p=document.createElementNS(NS,'path');
+    p.setAttribute('d',arc(rings[0].i,rings[0].o,sa,ea));
+    p.setAttribute('fill',RC[b1].r1);p.setAttribute('stroke','#fff');p.setAttribute('stroke-width','1.5');
+    p.classList.add('ring-slice');g.appendChild(p);
+    const[tx,ty]=polar(sa+45,(rings[0].i+rings[0].o)/2);
+    g.appendChild(mkT(tx,ty,b1,20,'600','#1e3a5f',null));
+  });
+
+  // Ring 2 — second base (16 slices)
+  BASES.forEach((b1,i1)=>{BASES.forEach((b2,i2)=>{
+    const idx=i1*4+i2,sa=idx*22.5,ea=sa+22.5;
+    const p=document.createElementNS(NS,'path');
+    p.setAttribute('d',arc(rings[1].i,rings[1].o,sa,ea));
+    p.setAttribute('fill',RC[b2].r2);p.setAttribute('stroke','#fff');p.setAttribute('stroke-width','1');
+    p.classList.add('ring-slice');g.appendChild(p);
+    const[tx,ty]=polar(sa+11.25,(rings[1].i+rings[1].o)/2);
+    g.appendChild(mkT(tx,ty,b2,12,'600','#0f4c35',null));
+  });});
+
+  // Rings 3 + AA — third base and amino acid (64 slices)
+  // Track which AA labels we've already drawn for radial labels
+  const drawnAA={};
+
+  BASES.forEach((b1,i1)=>{BASES.forEach((b2,i2)=>{BASES.forEach((b3,i3)=>{
+    const idx=i1*16+i2*4+i3,sa=idx*aps,ea=sa+aps;
+    const codon=b1+b2+b3,aa=CODON_TABLE[codon],mid=sa+aps/2,rotA=mid-90;
+
+    // Ring 3 — third base
+    const c3=aa==='Stop'?'#fca5a5':aa==='Met'?'#86efac':RC[b3].r3;
+    const p3=document.createElementNS(NS,'path');
+    p3.setAttribute('d',arc(rings[2].i,rings[2].o,sa,ea));
+    p3.setAttribute('fill',c3);p3.setAttribute('stroke','#fff');p3.setAttribute('stroke-width','0.6');
+    p3.classList.add('ring-slice');p3.dataset.codon=codon;p3.dataset.aa=aa;
+    g.appendChild(p3);
+    const[t3x,t3y]=polar(mid,(rings[2].i+rings[2].o)/2);
+    g.appendChild(mkT(t3x,t3y,b3,9,'400','#1e293b',rotA));
+
+    // Ring AA — amino acid colour band
+    const cA=aa==='Stop'?'#fca5a5':aa==='Met'?'#86efac':RC[b1].rA;
+    const pA=document.createElementNS(NS,'path');
+    pA.setAttribute('d',arc(rings[3].i,rings[3].o,sa,ea));
+    pA.setAttribute('fill',cA);pA.setAttribute('stroke','#fff');pA.setAttribute('stroke-width','0.6');
+    pA.classList.add('ring-slice');pA.dataset.codon=codon;pA.dataset.aa=aa;
+    g.appendChild(pA);
+
+    // 3-letter code on the AA ring, rotated radially
+    const aaCol=aa==='Stop'?'#7f1d1d':aa==='Met'?'#14532d':'#1e3a5f';
+    const[tax,tay]=polar(mid,(rings[3].i+rings[3].o)/2);
+    g.appendChild(mkT(tax,tay,aa,7.5,'500',aaCol,rotA));
+
+    // Radial tick + full name — one per unique AA group (drawn at midpoint of all codons for that AA)
+    if(!drawnAA[aa]){
+      // Collect all slices for this AA to find centroid angle
+      drawnAA[aa]=[];
+    }
+    drawnAA[aa].push(mid);
+
+    // Register interactive elements
+    if(!sliceEls[codon]) sliceEls[codon]=[];
+    sliceEls[codon].push(p3,pA);
+    [p3,pA].forEach(el=>{
+      el.addEventListener('mouseenter',e=>{if(!pinned){hoverCodon(codon);moveTip(e);}});
+      el.addEventListener('mousemove',e=>{if(!pinned)moveTip(e);});
+      el.addEventListener('mouseleave',()=>{if(!pinned)leaveCodon();});
+      el.addEventListener('click',e=>{e.stopPropagation();clickCodon(codon,aa);});
+    });
+  });});});
+
+  // Draw radial labels after all slices — one per AA at centroid angle
+  const labelG=document.createElementNS(NS,'g');labelG.id='radial-labels';svg.appendChild(labelG);
+
+  Object.entries(drawnAA).forEach(([aa,mids])=>{
+    // Centroid angle — average, but handle wrap-around for groups that span 0°
+    let angles=mids.slice().sort((a,b)=>a-b);
+    // Check if group wraps (gap > 180 between any consecutive angles)
+    let centroid;
+    let maxGap=0,gapIdx=0;
+    for(let i=0;i<angles.length;i++){
+      const next=angles[(i+1)%angles.length];
+      const gap=(next-angles[i]+360)%360;
+      if(gap>maxGap){maxGap=gap;gapIdx=i;}
+    }
+    if(maxGap>180){
+      // Wrap — average the other side
+      const wrapped=angles.map((a,i)=>(i<=gapIdx?a+360:a));
+      centroid=(wrapped.reduce((s,a)=>s+a,0)/wrapped.length)%360;
+    } else {
+      centroid=angles.reduce((s,a)=>s+a,0)/angles.length;
+    }
+
+    const[tx1,ty1]=polar(centroid,TICK_INNER);
+    const[tx2,ty2]=polar(centroid,TICK_OUTER);
+    const[lx,ly]=polar(centroid,LABEL_R);
+
+    // Tick line
+    const tick=document.createElementNS(NS,'line');
+    tick.setAttribute('x1',tx1);tick.setAttribute('y1',ty1);
+    tick.setAttribute('x2',tx2);tick.setAttribute('y2',ty2);
+    tick.setAttribute('stroke','var(--tick)');tick.setAttribute('stroke-width','0.8');
+    tick.setAttribute('pointer-events','none');
+    labelG.appendChild(tick);
+
+    // Radial text — rotate so it reads outward
+    // Right half (0–180): text reads left to right; left half (180–360): flip 180°
+    const textAngle=centroid-90;
+    const flip=centroid>180&&centroid<360;
+    const finalAngle=flip?textAngle+180:textAngle;
+    const anchor=flip?'end':'start';
+
+    const full=AA_FULL[aa]||aa;
+    const lEl=document.createElementNS(NS,'text');
+    lEl.setAttribute('x',lx);lEl.setAttribute('y',ly);
+    lEl.setAttribute('text-anchor',anchor);
+    lEl.setAttribute('dominant-baseline','central');
+    lEl.setAttribute('font-size','7.5');
+    lEl.setAttribute('font-weight','400');
+    lEl.setAttribute('fill','var(--radial-text)');
+    lEl.setAttribute('pointer-events','none');
+    lEl.setAttribute('font-family',"'DM Sans',sans-serif");
+    lEl.setAttribute('transform',`rotate(${finalAngle},${lx},${ly})`);
+    lEl.textContent=full;
+    labelG.appendChild(lEl);
+  });
+
+  // Centre labels
+  svg.appendChild(mkT(cx,cy-10,"5′ →",13,'500','#888780',null));
+  svg.appendChild(mkT(cx,cy+8,"3′",10,'400','#b4b2a9',null));
+}
+
+// ── Tooltip ──────────────────────────────────────────────────────────────────
+const tip=document.getElementById('tooltip');
+function showTip(codon){
+  const aa=CODON_TABLE[codon],full=AA_FULL[aa]||aa,syn=byAA[aa]||[];
+  const tag=aa==='Stop'?`<span class="tt-tag tag-stop">Stop codon</span>`:aa==='Met'?`<span class="tt-tag tag-start">Start / Met</span>`:`<span class="tt-tag tag-aa">${syn.length} synonymous codons</span>`;
+  tip.innerHTML=`<div class="tt-name">${full}</div><div class="tt-abbr">${aa==='Stop'?'Terminates translation':SINGLE[aa]?`${aa} · ${SINGLE[aa]}`:''}</div>${tag}<div class="tt-codon-label">All codons:</div><div class="tt-codons">${syn.join(' · ')}</div>`;
+  tip.style.display='block';
+}
+function moveTip(e){
+  let x=e.clientX+16,y=e.clientY-10;
+  if(x+230>window.innerWidth) x=e.clientX-230;
+  tip.style.left=x+'px';tip.style.top=y+'px';
+}
+svg.addEventListener('mousemove',e=>{if(!pinned)moveTip(e);});
+
+// ── Crossfilter ───────────────────────────────────────────────────────────────
+function applyAA(aa){
+  activeAA=aa;
+  const same=aa?byAA[aa]:null;
+  Object.entries(sliceEls).forEach(([cod,els])=>{
+    const match=!aa||same.includes(cod);
+    els.forEach(el=>{el.classList.toggle('faded',!match);el.classList.toggle('active',match&&!!aa);});
+  });
+  Object.entries(barRowEls).forEach(([a,row])=>{row.classList.toggle('cf-active',a===aa);row.classList.toggle('cf-faded',!!aa&&a!==aa);});
+  Object.entries(aaCardEls).forEach(([a,card])=>{card.classList.toggle('cf-active',a===aa);card.classList.toggle('cf-faded',!!aa&&a!==aa);});
+  if(aa) showDetail(aa); else hideDetail();
+}
+function clearAll(){
+  pinned=null;activeAA=null;
+  document.querySelectorAll('.ring-slice').forEach(el=>el.classList.remove('faded','active'));
+  Object.values(barRowEls).forEach(r=>r.classList.remove('cf-active','cf-faded'));
+  Object.values(aaCardEls).forEach(c=>c.classList.remove('cf-active','cf-faded'));
+  showDefaultInfo();tip.style.display='none';hideDetail();
+}
+function hoverCodon(codon){showTip(codon);applyAA(CODON_TABLE[codon]);showInfoCodon(codon);}
+function leaveCodon(){tip.style.display='none';if(pinned){applyAA(CODON_TABLE[pinned]);showInfoCodon(pinned);}else clearAll();}
+function clickCodon(codon,aa){if(pinned===codon){clearAll();}else{pinned=codon;showTip(codon);applyAA(aa);showInfoCodon(codon);}}
+function clickAA(aa){if(activeAA===aa&&!pinned){clearAll();return;}pinned=null;applyAA(aa);showInfoAA(aa);}
+
+svg.addEventListener('click',()=>{if(pinned)clearAll();});
+document.getElementById('reset-btn').addEventListener('click',clearAll);
+
+// ── Info bar ──────────────────────────────────────────────────────────────────
+function showInfoCodon(codon){
+  const aa=CODON_TABLE[codon],full=AA_FULL[aa]||aa,syn=byAA[aa]||[];
+  document.getElementById('info-bar').innerHTML=`<span class="codon-disp">${codon}</span><span class="sep">→</span><span class="aa-disp">${full}</span><span class="synonyms">Synonyms: ${syn.join(', ')}</span>`;
+}
+function showInfoAA(aa){
+  const full=AA_FULL[aa]||aa,codons=byAA[aa]||[];
+  document.getElementById('info-bar').innerHTML=`<span class="aa-disp">${full}</span><span class="sep">·</span><span class="synonyms">${codons.join(' · ')}</span>`;
+}
+function showDefaultInfo(){document.getElementById('info-bar').innerHTML=`<span style="color:var(--text3)">Hover a slice · click to pin · 5′→ 3′ outward</span>`;}
+
+function showDetail(aa){
+  const codons=byAA[aa]||[];
+  document.getElementById('d-name').textContent=`${AA_FULL[aa]||aa}${SINGLE[aa]?' ('+aa+' / '+SINGLE[aa]+')':''}`;
+  document.getElementById('d-meta').textContent=`${codons.length} codon${codons.length!==1?'s':''} · ${aa==='Stop'?'terminates translation':aa==='Met'?'start codon + amino acid':'encoded by '+codons.length+' synonym'+(codons.length!==1?'s':'')}`;
+  document.getElementById('d-codons').innerHTML=codons.map(c=>`<span class="pill">${c}</span>`).join('');
+  document.getElementById('detail-box').classList.add('visible');
+}
+function hideDetail(){document.getElementById('detail-box').classList.remove('visible');}
+
+// ── Bars ──────────────────────────────────────────────────────────────────────
+const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+const barsEl=document.getElementById('bars');
+sorted.forEach(([aa,n])=>{
+  const isStop=aa==='Stop',isMet=aa==='Met';
+  const full=AA_FULL[aa]||aa;
+  const barColor=isStop?'#fca5a5':isMet?'#86efac':BC[n]||'#93c5fd';
+  const row=document.createElement('div');row.className='bar-row';
+  const label=full.length>13?full.slice(0,12)+'…':full;
+  row.innerHTML=`<div class="bar-label" title="${full}">${label}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(n/6*100)}%;background:${barColor}"></div></div><div class="bar-count">${n}</div>`;
+  row.addEventListener('click',()=>clickAA(aa));
+  barRowEls[aa]=row;barsEl.appendChild(row);
+});
+
+// ── AA cards ──────────────────────────────────────────────────────────────────
+const aaOrder=['Ala','Arg','Asn','Asp','Cys','Gln','Glu','Gly','His','Ile','Leu','Lys','Met','Phe','Pro','Ser','Thr','Trp','Tyr','Val','Stop'];
+const aaGrid=document.getElementById('aa-grid');
+aaOrder.forEach(aa=>{
+  const n=counts[aa]||0,isStop=aa==='Stop',isMet=aa==='Met';
+  const badgeBg=isStop?'#fee2e2':isMet?'#dcfce7':'#eff6ff';
+  const badgeColor=isStop?'#991b1b':isMet?'#166534':'#1e40af';
+  const card=document.createElement('div');
+  card.className='aa-card'+(isStop?' stop-aa':isMet?' start-aa':'');
+  const fullName=AA_FULL[aa]||aa;
+  card.innerHTML=`<div class="aa-badge" style="background:${badgeBg};color:${badgeColor}">${n}</div><div><div class="aa-name-text">${fullName.length>12?fullName.slice(0,11)+'…':fullName}</div><div class="aa-abbr">${aa}${SINGLE[aa]?' · '+SINGLE[aa]:''}</div></div>`;
+  card.addEventListener('click',()=>clickAA(aa));
+  aaCardEls[aa]=card;aaGrid.appendChild(card);
+});
+
+// ── Theme ─────────────────────────────────────────────────────────────────────
+function setTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.t===t));
+}
+
+drawWheel();
+</script>
+</body>
+</html>
