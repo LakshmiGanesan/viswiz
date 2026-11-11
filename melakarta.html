@@ -137,6 +137,14 @@ html.light .mus-ov{background:rgba(40,30,10,.25)}
 .mus-card li::before{content:counter(g);position:absolute;left:0;top:1px;width:22px;height:22px;border-radius:50%;border:1px solid var(--ring-bold);
   font-family:'Cinzel',serif;font-size:.68rem;font-weight:700;color:var(--header-title);display:flex;align-items:center;justify-content:center}
 .mus-card li b{color:var(--tt-name);font-weight:700}
+.mus-vid{display:flex;align-items:center;gap:12px;width:100%;margin:6px 0 12px;padding:10px 12px;border-radius:10px;cursor:pointer;
+  border:1px solid var(--ring-bold);background:none;text-align:left;transition:border-color .15s,transform .15s}
+.mus-vid:hover{border-color:var(--header-title);transform:translateY(-1px)}
+.mus-vid:focus-visible{outline:2px solid var(--header-title);outline-offset:2px}
+.mus-vid .pl{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid var(--header-title);display:flex;align-items:center;justify-content:center;color:var(--header-title)}
+.mus-vid .pl svg{width:14px;height:14px;margin-left:2px}
+.mus-vid b{display:block;font-family:'Cinzel',serif;font-weight:600;font-size:.72rem;letter-spacing:.08em;color:var(--tt-name)}
+.mus-vid i{display:block;font-family:'Gentium Plus',serif;font-size:.82rem;color:var(--tt-aro);margin-top:2px}
 .mus-end{font-family:'Gentium Plus',serif;font-style:italic;font-size:.88rem;color:var(--header-title);text-align:center;padding-top:10px;border-top:1px solid var(--ring-soft);margin-top:4px}
 
 /* ── PAGE CONTROLS (icon-only, top left) ── */
@@ -517,6 +525,9 @@ html.light .leg.active{ background:rgba(107,78,16,0.14); }
 <div class="ctl" role="toolbar" aria-label="Page controls">
   <button class="ctl-btn" onclick="openInfoModal('about')" aria-label="About this explorer" title="About">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 10.8v6.2"/><circle cx="12" cy="7.3" r=".7" fill="currentColor"/></svg>
+  </button>
+  <button class="ctl-btn" onclick="openExplainer()" aria-label="Watch the Melakarta Explainer video" title="Video overview">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M10 8.6v6.8l5.6-3.4z" fill="currentColor"/></svg>
   </button>
   <button class="ctl-btn" onclick="openInfoModal('help')" aria-label="How to use this explorer" title="Help">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.2 9.2a2.9 2.9 0 1 1 4.1 2.6c-.8.4-1.3 1-1.3 1.9v.6"/><circle cx="12" cy="17.4" r=".6" fill="currentColor"/></svg>
@@ -1042,6 +1053,23 @@ function openYTModal(melaNum){
   document.body.style.overflow = 'hidden';
 }
 
+// ── VIDEO OVERVIEW: The Melakarta Explainer
+const EXPLAINER = { id:'-I81TyTBC6E' };
+function openExplainer(){
+  hideTT();
+  if(infoOverlay.classList.contains('on')) closeInfoModal();
+  ytHeadText.innerHTML = `
+    <div class="tt-n">VIDEO OVERVIEW</div>
+    <div class="tt-name">The Melakarta Explainer</div>
+    <div class="tt-alt">How twelve positions become 72 parent ragas</div>`;
+  ytInfo.innerHTML = `
+    <div class="tt-aro">Venkatamakhi's design in four moves: fix, vary, count and arrange. Then a tour of all twelve chakras on this wheel, with Mēcakalyāṇi sung by Vidya Subramanian.</div>`;
+  ytFrame.src = `https://www.youtube.com/embed/${EXPLAINER.id}?autoplay=1&playsinline=1&rel=0`;
+  ytFallbackLink.href = `https://youtu.be/${EXPLAINER.id}`;
+  ytOverlay.classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
+
 function closeYTModal(){
   ytOverlay.classList.remove('on');
   ytFrame.src = ''; // stop playback
@@ -1063,6 +1091,10 @@ const INFO_CONTENT = {
         <li><b>Every raga, in full.</b> Each card gives the mela number, the name in IAST and Devanagari, and the ārohaṇa and avarohaṇa.</li>
         <li><b>Hear it.</b> Listen to each raga sung by Vidya Subramanian, or to its bare notes, synthesized for comparison. Every swara in the key plays its sound.</li>
       </ol>
+      <button class="mus-vid" onclick="openExplainer()">
+        <span class="pl"><svg viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z" fill="currentColor"/></svg></span>
+        <span><b>Watch the video overview</b><i>The Melakarta Explainer · 7 min</i></span>
+      </button>
       <p class="mus-end">A living map of sound that invites exploration, discovery and deeper listening.</p>`
   },
   help: {
@@ -1070,6 +1102,10 @@ const INFO_CONTENT = {
     title: 'Finding your way around',
     html: `
       <p class="mus-lead">No prior knowledge needed. Start anywhere, and follow your curiosity.</p>
+      <button class="mus-vid" onclick="openExplainer()">
+        <span class="pl"><svg viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z" fill="currentColor"/></svg></span>
+        <span><b>New here? Watch the video overview</b><i>The Melakarta Explainer · 7 min</i></span>
+      </button>
       <ol>
         <li><b>Search or explore.</b> Type a raga name, mela number, chakra or swaras (try “R2 G3”), or simply tap the wheel.</li>
         <li><b>Open a raga card.</b> Tap any raga for its profile. Hear it sung, or hear its bare notes.</li>
