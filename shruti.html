@@ -133,8 +133,8 @@ footer .fine{font-size:12px;opacity:.75}
     <canvas id="strings" aria-hidden="true"></canvas>
     <div class="readout">
       <div>
-        <div class="sa-big" id="saBig">4½ kaṭṭai</div>
-        <div class="sa-meta" id="saMeta">Sa = F♯3 · 185.0 Hz</div>
+        <div class="sa-big" id="saBig">4 kaṭṭai</div>
+        <div class="sa-meta" id="saMeta">Sa = F3 · 174.6 Hz</div>
       </div>
       <dl class="rows" id="stringRows"></dl>
       <div>
@@ -170,8 +170,8 @@ footer .fine{font-size:12px;opacity:.75}
       <p class="label">Sound</p>
       <div class="slider"><label for="fine">Fine tune</label><input id="fine" type="range" min="-50" max="50" step="1" value="0"><output id="fineOut">0 ¢</output></div>
       <div class="slider"><label for="tempo">Cycle</label><input id="tempo" type="range" min="2.4" max="7" step="0.1" value="4.2"><output id="tempoOut">4.2 s</output></div>
-      <div class="slider"><label for="jivari">Jivāri</label><input id="jivari" type="range" min="0" max="1" step="0.01" value="0.6"><output id="jivariOut">60%</output></div>
-      <div class="slider"><label for="vol">Volume</label><input id="vol" type="range" min="0" max="1" step="0.01" value="0.7"><output id="volOut">70%</output></div>
+      <div class="slider"><label for="jivari">Jivāri</label><input id="jivari" type="range" min="0" max="1" step="0.01" value="0.45"><output id="jivariOut">45%</output></div>
+      <div class="slider"><label for="vol">Volume</label><input id="vol" type="range" min="0" max="1" step="0.01" value="0.55"><output id="volOut">55%</output></div>
     </div>
   </section>
 
@@ -231,12 +231,12 @@ footer .fine{font-size:12px;opacity:.75}
     {s:'Ṡ',  sub:'',  alt:'', v:2,     r:'2',     names:'Tāra Ṣaḍjam'},
   ];
 
-  const state = {kattai:'45', tuning:'pa', cents:0, cycle:4.2, jivari:0.6, vol:0.7, playing:false};
+  const state = {kattai:'4', tuning:'pa', cents:0, cycle:4.2, jivari:0.45, vol:0.55, playing:false};
   try {
-    const saved = JSON.parse(localStorage.getItem('shruti-settings') || 'null');
+    const saved = JSON.parse(localStorage.getItem('shruti-settings-v2') || 'null');
     if (saved && KATTAI.some(x => x.id === saved.kattai)) Object.assign(state, saved, {playing:false});
   } catch (e) {}
-  const save = () => { try { const {playing, ...rest} = state; localStorage.setItem('shruti-settings', JSON.stringify(rest)); } catch (e) {} };
+  const save = () => { try { const {playing, ...rest} = state; localStorage.setItem('shruti-settings-v2', JSON.stringify(rest)); } catch (e) {} };
 
   const $ = id => document.getElementById(id);
   const cur = () => KATTAI.find(x => x.id === state.kattai);
@@ -335,7 +335,7 @@ footer .fine{font-size:12px;opacity:.75}
     // gentle voicing: clear the sub-rumble, warm the gourd region, open the top
     const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 42; hp.Q.value = 0.7;
     const warm = ctx.createBiquadFilter(); warm.type = 'peaking'; warm.frequency.value = 190; warm.Q.value = 0.9; warm.gain.value = 1.5;
-    const air = ctx.createBiquadFilter(); air.type = 'highshelf'; air.frequency.value = 3800; air.gain.value = 2.5;
+    const air = ctx.createBiquadFilter(); air.type = 'highshelf'; air.frequency.value = 3800; air.gain.value = 0.5;
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -12; comp.ratio.value = 2.5; comp.attack.value = 0.01; comp.release.value = 0.4;
     dry = ctx.createGain(); dry.gain.value = 0.9;
@@ -388,7 +388,7 @@ footer .fine{font-size:12px;opacity:.75}
       const w = TWO_PI * fk / sr, cr = Math.cos(w), ci = Math.sin(w);
       const ph = rnd() * TWO_PI;
       let re = Math.cos(ph), im = Math.sin(ph);
-      const base = k === 1 ? 0.6 : 1.15 / Math.pow(k, 0.72);
+      const base = k === 1 ? 0.7 : 1.15 / Math.pow(k, 0.8);
       const decay = 0.17 + 0.011 * k + 0.00022 * k * k;
       const m = 0.10 + 0.22 * Math.min(1, k / 10);
       const rL = 0.12 + rnd() * 0.9, rR = 0.12 + rnd() * 0.9, pL = rnd() * TWO_PI, pR = rnd() * TWO_PI;
@@ -400,8 +400,8 @@ footer .fine{font-size:12px;opacity:.75}
         const comb = 1 - bright * 0.72 * (1 - Math.abs(Math.sin(Math.PI * k * beta)));
         const fc = 380 + 3700 * Math.exp(-t / 1.35);
         const dd = Math.log2(fk / fc);
-        const band = 1 + bright * 4.6 * Math.exp(-(dd * dd) / 0.22) * (0.35 + 0.65 * Math.exp(-t * 0.32));
-        const twang = 1 + 2.4 * Math.exp(-t / 0.032) * twK;
+        const band = 1 + bright * 3.6 * Math.exp(-(dd * dd) / 0.22) * (0.35 + 0.65 * Math.exp(-t * 0.32));
+        const twang = 1 + 1.1 * Math.exp(-t / 0.028) * twK;
         const env = base * Math.exp(-decay * t) * band * comb * twang * Math.min(1, t / 0.0025);
         const aL = env * (1 + m * Math.sin(TWO_PI * rL * t + pL));
         const aR = env * (1 + m * Math.sin(TWO_PI * rR * t + pR));
@@ -424,7 +424,7 @@ footer .fine{font-size:12px;opacity:.75}
     for (let i = 0; i < nN; i++){
       const x = (rnd() * 2 - 1) * Math.exp(-i / (0.0035 * sr));
       const hpv = x - prev; prev = x;
-      L[i] += hpv * 0.35; R[i] += hpv * 0.32;
+      L[i] += hpv * 0.12; R[i] += hpv * 0.11;
     }
     const fade = Math.floor(0.5 * sr);
     for (let i = 0; i < fade; i++){ const g = i / fade; L[N - 1 - i] *= g; R[N - 1 - i] *= g; }
@@ -477,7 +477,7 @@ footer .fine{font-size:12px;opacity:.75}
     const src = ctx.createBufferSource(); src.buffer = buffers[i];
     src.playbackRate.value = 1 + (Math.random() - 0.5) * 0.0006;
     const g = ctx.createGain();
-    const vel = [0.82, 0.7, 0.66, 0.95][i] * (0.92 + Math.random() * 0.08);
+    const vel = [0.6, 0.52, 0.5, 0.7][i] * (0.92 + Math.random() * 0.08);
     g.gain.setValueAtTime(vel, when);
     const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
     if (pan){ pan.pan.value = [-0.22, -0.07, 0.07, 0.22][i]; src.connect(g); g.connect(pan); pan.connect(master); }
