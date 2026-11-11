@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en-GB" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Samam · Tāḷam Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: three choices on the left (tāḷa family × jāti matrix, nadai row beneath it),
+   the Āvartanam as the centrepiece on the right, laid out as a line directly below its wheel. */
+:root{
+  --bg:#f5f4ef; --surface:#ffffff; --raise:#fbfaf7;
+  --ink:#1c2140; --text:#33364a; --muted:#767a8e; --rule:#e2e0d8;
+  --laghu:#4f8657; --drutam:#bf7f2c; --anu:#83539d; --samam:#b3303a; --pulse:#3767a6;
+  --t-laghu:#e9f2e7; --t-drutam:#f7ecdc; --t-anu:#f0e7f5; --t-group:#e4eff0; --t-on:#fff3cf;
+  --serif:"EB Garamond", Garamond, "Iowan Old Style", Georgia, serif;
+  --sans:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+:root[data-theme="dark"]{
+  --bg:#0e1120; --surface:#161a2b; --raise:#1b2033;
+  --ink:#eeecf6; --text:#cfd0dc; --muted:#8d90a6; --rule:#272c42;
+  --laghu:#86c18e; --drutam:#e6a85f; --anu:#bb92da; --samam:#ec6670; --pulse:#7eaaf0;
+  --t-laghu:#1c2b23; --t-drutam:#30281b; --t-anu:#2a2236; --t-group:#1a2b2e; --t-on:#3b3420;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15.5px;line-height:1.5;transition:background .25s,color .25s}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--pulse);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 22px 34px;display:grid;gap:20px}
+.label{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+/* top bar */
+.bar{display:flex;align-items:center;gap:8px}
+.icon{width:34px;height:34px;border-radius:50%;border:1px solid var(--rule);background:var(--surface);color:var(--ink);cursor:pointer;display:grid;place-items:center;font-family:var(--serif);font-size:1.1rem;padding:0}
+.icon:hover{border-color:var(--ink)}
+.icon svg{width:16px;height:16px}
+.bar .kicker{margin-left:8px}
+
+/* header */
+header{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px 40px;align-items:end;padding-bottom:16px;border-bottom:1px solid var(--rule)}
+h1{font-family:var(--serif);font-weight:500;font-size:clamp(2.6rem,6vw,3.8rem);color:var(--ink);margin:0;line-height:1}
+.sub{font-family:var(--serif);font-style:italic;font-size:1.2rem;color:var(--text);margin-top:4px}
+.byline{font-size:.84rem;color:var(--muted);margin-top:6px}
+.byline b{font-weight:500;color:var(--text)}
+.score{display:grid;grid-template-columns:repeat(3,auto);gap:6px 26px}
+.score div{display:grid;line-height:1.15}
+.score b{font-family:var(--serif);font-weight:500;font-size:1.7rem;color:var(--ink);font-variant-numeric:lining-nums}
+.score span{font-size:.8rem;color:var(--muted)}
+.score i{font-style:normal;opacity:.75}
+
+/* main */
+.main{display:grid;grid-template-columns:minmax(380px,0.92fr) minmax(0,1.08fr);gap:20px;align-items:stretch}
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:16px;padding:18px 18px 16px}
+.choose{display:grid;gap:14px;align-content:start}
+.choose .head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.step{font-family:var(--serif);font-style:italic;color:var(--muted);font-size:.95rem}
+
+/* matrix */
+.matrix{overflow-x:auto}
+table{border-collapse:separate;border-spacing:0;width:100%;min-width:400px;table-layout:fixed;font-variant-numeric:tabular-nums lining-nums}
+th,td{padding:2px}
+thead th{font-weight:400;text-align:center;vertical-align:bottom;padding-bottom:8px}
+thead th:first-child,tbody th,tfoot th{width:86px;text-align:left}
+.jn{font-family:var(--serif);font-size:1.02rem;color:var(--ink);display:block;white-space:nowrap}
+.jc{font-size:.76rem;color:var(--muted)}
+.jsol{display:block;border:none;background:none;cursor:pointer;color:var(--muted);font-family:var(--serif);font-style:italic;font-size:.76rem;line-height:1.2;padding:1px 0;margin:2px auto 0;min-height:2.4em;overflow-wrap:anywhere}
+.jsol:hover,.jsol.on{color:var(--anu)}
+tbody th{font-weight:400;white-space:nowrap}
+.tn{font-family:var(--serif);font-size:1.1rem;color:var(--ink);display:block;line-height:1.1}
+.shape{display:flex;gap:3px;align-items:center;height:12px;margin-top:3px}
+.shape svg{display:block}
+.cell{width:100%;height:42px;border:1px solid var(--rule);background:var(--raise);border-radius:9px;cursor:pointer;font-family:var(--serif);font-size:1.25rem;color:var(--ink);position:relative;transition:background .15s,border-color .15s}
+.cell:hover{border-color:var(--ink)}
+.cell.heard::after{content:"";position:absolute;top:5px;right:6px;width:5px;height:5px;border-radius:50%;background:var(--drutam)}
+.cell.cur{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.cell.cur.heard::after{background:var(--bg)}
+tfoot th{padding-top:12px}
+tfoot td{padding-top:12px}
+.nd{width:100%;height:34px;border:1px solid var(--rule);background:transparent;border-radius:999px;cursor:pointer;font-size:.92rem;font-variant-numeric:tabular-nums}
+.nd:hover{border-color:var(--pulse)}
+.nd[aria-pressed="true"]{background:var(--pulse);border-color:var(--pulse);color:#fff}
+tfoot .tn{font-size:1.02rem}
+tfoot .jc{display:block}
+.divider{border-top:1px solid var(--rule)}
+.beyond{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
+.chip{border:1px solid var(--rule);background:transparent;border-radius:999px;padding:3px 11px;cursor:pointer;font-size:.88rem}
+.chip:hover{border-color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:3px 14px;font-size:.8rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:9px;height:9px;border-radius:50%;display:inline-block}
+
+/* āvartanam */
+.avt{display:grid;gap:14px;align-content:start}
+.avt .head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.avt h2{font-family:var(--serif);font-weight:500;font-size:1.5rem;color:var(--ink);margin:0}
+.stage{display:grid;grid-template-columns:minmax(220px,300px) 1fr;gap:20px;align-items:center}
+.wheel{width:100%;aspect-ratio:1}
+.read{display:grid;gap:10px;align-content:center}
+.title{font-family:var(--serif);font-size:1.45rem;color:var(--ink);line-height:1.15}
+.alias{font-family:var(--serif);font-style:italic;color:var(--muted);font-size:1.02rem}
+.alias:empty{display:none}
+.formula{font-variant-numeric:tabular-nums;font-size:.93rem;line-height:1.6}
+.formula b{color:var(--ink);font-weight:600}
+.kon{display:grid;gap:3px}
+.kline{display:flex;flex-wrap:wrap;gap:2px 2px;align-items:baseline}
+.kline span{font-family:var(--serif);font-style:italic;font-size:1.08rem;color:var(--muted);padding:0 3px;border-radius:4px}
+.kline .gap{width:10px;padding:0}
+.kline span.on{background:var(--samam);color:#fff}
+.now{display:flex;align-items:baseline;gap:12px}
+.now .n{font-family:var(--serif);font-size:2.6rem;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums;min-width:1.6ch}
+.now .g{font-family:var(--serif);font-size:1.2rem;color:var(--ink)}
+.now .a{font-size:.82rem;color:var(--muted)}
+.ctrl{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;align-items:center}
+.ctrl .row2{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.play{grid-row:span 2;width:56px;height:56px;border-radius:50%;border:none;background:var(--samam);color:#fff;cursor:pointer;display:grid;place-items:center;flex:none}
+.play svg{width:20px;height:20px}
+.play[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.laya{display:flex;align-items:center;gap:8px;min-width:0}
+.laya input{flex:1;accent-color:var(--samam)}
+.laya output{font-variant-numeric:tabular-nums;font-size:.86rem;color:var(--muted);min-width:7ch}
+.voice{display:inline-flex;border:1px solid var(--rule);border-radius:999px;overflow:hidden}
+.voice button{border:none;background:transparent;padding:3px 11px;cursor:pointer;font-size:.85rem}
+.voice button + button{border-left:1px solid var(--rule)}
+.voice button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.toggle{display:inline-flex;gap:6px;align-items:center;font-size:.85rem;color:var(--muted);cursor:pointer}
+.toggle input{accent-color:var(--pulse)}
+.note{font-size:.86rem;border-left:2px solid var(--drutam);padding:1px 0 1px 10px}
+.note:empty{display:none}
+
+/* linear strip */
+.line{border-top:1px solid var(--rule);padding-top:12px;display:grid;gap:8px}
+.strip{display:flex;flex-wrap:wrap;gap:8px}
+.anga{display:grid;gap:5px;padding:6px 7px 7px;border-radius:10px;background:var(--t-laghu)}
+.anga.D{background:var(--t-drutam)} .anga.U{background:var(--t-anu)} .anga.G{background:var(--t-group)}
+.anga .tag{font-size:.7rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.counts{display:flex;gap:4px}
+.count{width:54px;background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:4px 2px 5px;display:grid;justify-items:center;gap:2px;transition:background .08s,border-color .08s}
+.count .cn{font-family:var(--serif);font-size:1.08rem;color:var(--ink);line-height:1}
+.count.samam .cn{color:var(--samam)}
+.count .cg{font-size:.66rem;color:var(--muted);text-align:center;line-height:1.15;min-height:2.3em;display:grid;align-items:center}
+.count .dots{display:flex;flex-wrap:wrap;justify-content:center;gap:2px;max-width:48px}
+.count .dot{width:5px;height:5px;border-radius:50%;background:var(--rule)}
+.count .dot.on{background:var(--pulse)}
+.count.on{background:var(--t-on);border-color:var(--ink)}
+
+/* notes */
+.notes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 28px;margin:0;font-size:.86rem}
+.notes div{display:grid;grid-template-columns:96px 1fr;gap:8px}
+.notes dt{font-family:var(--serif);font-size:1.02rem;color:var(--ink)}
+.notes dd{margin:0;color:var(--muted)}
+footer{border-top:1px solid var(--rule);padding-top:12px;display:flex;flex-wrap:wrap;gap:6px 20px;justify-content:space-between;font-size:.8rem;color:var(--muted)}
+footer em{font-family:var(--serif);font-size:1rem;color:var(--text)}
+
+/* guide */
+dialog{border:1px solid var(--rule);border-radius:16px;background:var(--surface);color:var(--text);padding:0;max-width:min(720px,calc(100vw - 32px));width:100%;max-height:calc(100% - 48px)}
+dialog::backdrop{background:rgba(8,10,20,.6)}
+.guide{padding:24px 28px 22px;display:grid;gap:12px}
+.guide .top{display:flex;justify-content:space-between;align-items:center}
+.guide h2{font-family:var(--serif);font-weight:500;font-size:1.9rem;color:var(--ink);margin:0;line-height:1.1}
+.guide h3{font-family:var(--serif);font-weight:500;font-size:1.18rem;color:var(--ink);margin:6px 0 0}
+.guide p{margin:0;max-width:64ch}
+.close{border:1px solid var(--rule);background:transparent;border-radius:999px;padding:3px 12px;cursor:pointer;font-size:.85rem;color:var(--muted)}
+.close:hover{color:var(--ink);border-color:var(--ink)}
+.go{justify-self:start;border:none;background:var(--samam);color:#fff;border-radius:999px;padding:8px 18px;cursor:pointer}
+.keys{font-size:.85rem;color:var(--muted)}
+kbd{font-family:var(--sans);border:1px solid var(--rule);border-radius:5px;padding:0 5px;font-size:.8rem}
+.src{font-size:.82rem;color:var(--muted);border-top:1px solid var(--rule);padding-top:10px;display:grid;gap:6px}
+.src p{max-width:none}
+
+@media (max-width:1020px){
+  .main{grid-template-columns:1fr}
+  .notes{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:640px){
+  header{grid-template-columns:1fr}
+  .stage{grid-template-columns:1fr}
+  .wheel{max-width:270px;justify-self:center}
+  .notes{grid-template-columns:1fr}
+  .count{width:48px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="bar">
+  <button class="icon" id="guideBtn" type="button" aria-label="Open the guide" aria-haspopup="dialog">?</button>
+  <button class="icon" id="themeBtn" type="button" aria-label="Switch to light mode"></button>
+  <span class="label kicker">35 Tāḷas · Carnatic Classical Music</span>
+</div>
+
+<header>
+  <div>
+    <h1>Samam</h1>
+    <div class="sub">Tāḷam Explorer · 35 tāḷas, 175 rhythms, one point of return</div>
+    <div class="byline">Visualisation by <b>Lakshmi Ganesan</b> · v1.0 · 11 November 2026</div>
+  </div>
+  <div class="score" aria-label="Key numbers at a glance">
+    <div><b>3</b><span>aṅgas</span></div>
+    <div><b>7</b><span>tāḷa families</span></div>
+    <div><b>5</b><span>jātis</span></div>
+    <div><b>35</b><span>tāḷas <i>7 × 5</i></span></div>
+    <div><b>5</b><span>nadais</span></div>
+    <div><b>175</b><span>rhythms <i>35 × 5</i></span></div>
+  </div>
+</header>
+
+<div class="main">
+
+  <section class="card choose" aria-labelledby="chooseH">
+    <div class="head"><span class="label" id="chooseH">Tāḷa–jāti matrix</span><span class="step">choose a tāḷa, then a nadai</span></div>
+    <div class="matrix"><table id="grid"></table></div>
+    <div class="divider"></div>
+    <div class="beyond" role="group" aria-label="Beyond the 35"><span class="label">Beyond the 35</span><span id="beyond" style="display:contents"></span></div>
+    <div class="legend" aria-hidden="true">
+      <span><i class="sw" style="background:var(--laghu)"></i>Laghu ǀ · clap + fingers</span>
+      <span><i class="sw" style="background:var(--drutam)"></i>Drutam O · clap + wave</span>
+      <span><i class="sw" style="background:var(--anu)"></i>Anudrutam U · clap</span>
+      <span><i class="sw" style="background:var(--samam)"></i>Samam</span>
+      <span><i class="sw" style="background:var(--drutam);width:5px;height:5px"></i>Often heard</span>
+    </div>
+  </section>
+
+  <section class="card avt" aria-labelledby="avtH">
+    <div class="head"><h2 id="avtH">Āvartanam</h2><span class="step">one complete cycle</span></div>
+    <div class="stage">
+      <svg class="wheel" id="wheel" viewBox="0 0 300 300" role="img" aria-label="One āvartanam"></svg>
+      <div class="read">
+        <div>
+          <div class="title" id="ttl"></div>
+          <div class="alias" id="alias"></div>
+        </div>
+        <div class="formula" id="formula"></div>
+        <div class="kon"><span class="label">Konnakol of the cycle</span><div class="kline" id="kline"></div></div>
+        <div class="now" aria-hidden="true"><span class="n" id="nowN">1</span><span><span class="g" id="nowG">Clap</span><br><span class="a" id="nowA">Samam</span></span></div>
+      </div>
+    </div>
+    <div class="note" id="note"></div>
+    <div class="ctrl">
+      <button class="play" id="play" aria-pressed="false" aria-label="Play"></button>
+      <div class="laya"><span class="label">Laya</span><input type="range" id="laya" min="30" max="140" step="2" value="60" aria-label="Laya: counts per minute"><output id="layaOut" for="laya">60 / min</output></div>
+      <div class="row2"><span class="label">Hear</span><span class="voice" role="group" aria-label="What you hear on each count"><button type="button" id="vHands" aria-pressed="true">Hands</button><button type="button" id="vKon" aria-pressed="false">Konnakol</button></span>
+      <label class="toggle" for="pulses"><input type="checkbox" id="pulses" checked>nadai pulses</label></div>
+    </div>
+    <div class="line">
+      <span class="label">The cycle, laid out</span>
+      <div class="strip" id="strip"></div>
+    </div>
+  </section>
+</div>
+
+<dl class="notes">
+  <div><dt>Tāḷa family</dt><dd>one of the seven Sulādi Sapta Tāḷas, Dhruva to Eka, each a fixed pattern of aṅgas.</dd></div>
+  <div><dt>Jāti</dt><dd>counts in the laghu (3, 4, 5, 7, 9); it sets how long the cycle is.</dd></div>
+  <div><dt>Nadai</dt><dd>also gati: pulses inside each count. The counts stay the same.</dd></div>
+  <div><dt>Laya</dt><dd>tempo, a separate dial from nadai.</dd></div>
+  <div><dt>Āvartanam</dt><dd>one complete turn of the cycle.</dd></div>
+  <div><dt>Samam</dt><dd>the first count, where every cycle begins and returns.</dd></div>
+  <div><dt>Solkattu</dt><dd>rhythm syllables, such as ta-ki-ta for three. Tap a column's syllables to hear them.</dd></div>
+  <div><dt>Konnakol</dt><dd>the art of reciting solkattu while keeping tāḷam. Switch the sound to Konnakol to hear the cycle spoken in strokes.</dd></div>
+  <div><dt>Chāpu</dt><dd>tāḷas kept by beats rather than aṅgas, outside the 35.</dd></div>
+</dl>
+
+<footer>
+  <em>Tāḷam is the organisation of musical time into a living, recurring rhythmic experience.</em>
+  <span>Design and development by Lakshmi Ganesan · First version, 11 November 2026 · Sounds are synthesised · Finger counting past four varies between teachers</span>
+</footer>
+</div>
+
+<dialog id="guide" aria-labelledby="guideTitle">
+  <div class="guide">
+    <div class="top"><span class="label">A guide for the curious</span><button class="close" type="button" id="guideClose">✕ Close</button></div>
+    <h2 id="guideTitle">Why “Samam”?</h2>
+    <p>Watch a Carnatic singer and you will see a hand moving quietly on her lap: a clap, a ripple of fingers, a turn of the palm, and then the same again. That hand is keeping <em>tāḷam</em>, and however far the music wanders, it keeps returning to one place, the first count of the cycle. That count is the <em>samam</em>. This explorer is named after it.</p>
+    <h3>What is tāḷam?</h3>
+    <p>Tāḷam is the framework that organises musical time. If rāgam gives a composition its melodic shape, tāḷam gives it a rhythmic one. A tāḷa is a pattern of units measured in basic counts, or <em>aksharas</em>. One complete turn of the pattern is an <em>āvartanam</em>, the wheel at the centre of this page.</p>
+    <h3>Three choices make every rhythm here</h3>
+    <p><b>Tāḷa family</b> (rows). Three <em>aṅgas</em> build every tāḷa: the <span style="color:var(--laghu)">laghu ǀ</span>, a clap and finger counts of variable length; the <span style="color:var(--drutam)">drutam O</span>, a clap and a wave, always two counts; and the <span style="color:var(--anu)">anudrutam U</span>, a single clap. Arranged in seven ways they give the Sulādi Sapta Tāḷas, from Dhruva to Eka.</p>
+    <p><b>Jāti</b> (columns). The laghu can hold 3, 4, 5, 7 or 9 counts, each with its own syllables, or <em>solkattu</em>. Seven families in five jātis make 35 tāḷas, from 3 counts (Tisra Eka) to 29 (Saṅkīrṇa Dhruva). Ādi Tāḷam is Chaturasra Jāti Triputa, 4 + 2 + 2 = 8, and the page opens there.</p>
+    <p><b>Nadai</b> (the row beneath). Jāti sets how long the cycle is; nadai sets how many pulses fill each count. Change it and the hands keep the same counts, only the rhythm inside them changes. 35 tāḷas in five nadais make 175. Speed, or <em>laya</em>, is a separate dial.</p>
+    <h3>Beyond the 35</h3>
+    <p>The Chāpu tāḷas are kept by beats rather than aṅgas: Khaṇḍa Chāpu (ta-ka · ta-ki-ta, 2 + 3), Miśra Chāpu (ta-ki-ta · ta-ka-di-mi, 3 + 4) and Viloma Chāpu, its reverse (ta-ka-di-mi · ta-ki-ta, 4 + 3). Rūpaka is also often kept as three beats in practice.</p>
+    <h3>How to use it</h3>
+    <p>Tap any number in the matrix to hear that tāḷa. Follow the wheel and the line of counts beneath it, and try keeping the tāḷam with your own hand. Switch the sound to Konnakol to hear the cycle as spoken strokes. Somewhere in the second or third cycle the counting gives way to listening, and you find yourself waiting for samam.</p>
+    <p class="keys"><kbd>Space</kbd> play or stop · <kbd>←</kbd> <kbd>→</kbd> change jāti · <kbd>↑</kbd> <kbd>↓</kbd> change tāḷa family</p>
+    <button class="go" type="button" id="guideGo">Begin with Ādi</button>
+    <div class="src">
+      <p>Drawn from the essay <em>Understanding Tāḷam: The Rhythmic Architecture of Carnatic Music</em> by Lakshmi Ganesan. Principal references: P. Sambamoorthy, <em>South Indian Music</em>, Books I and II (Indian Music Publishing House); Śārṅgadeva, <em>Saṅgītaratnākara</em>, Chapter 5, <em>Tālādhyāya</em>.</p>
+      <p>Konnakol of the cycle recites each aṅga as one group, one syllable per count: a laghu by its jāti (ta-ka-di-mi for four), a drutam as ta-ka, an anudrutam as ta. Sounds are synthesised; finger counting past four varies between teachers.</p>
+    </div>
+  </div>
+</dialog>
+
+<script>
+(() => {
+"use strict";
+const $ = id => document.getElementById(id);
+const SVGNS = "http://www.w3.org/2000/svg";
+
+/* ---------- theme ---------- */
+const root = document.documentElement;
+const SUN = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="1.8"/><g stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></g></svg>';
+const MOON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+function setTheme(t){
+  root.setAttribute("data-theme", t);
+  $("themeBtn").innerHTML = t==="dark" ? SUN : MOON;
+  $("themeBtn").setAttribute("aria-label", t==="dark" ? "Switch to light mode" : "Switch to dark mode");
+  try{ localStorage.setItem("samam-theme", t); }catch(e){}
+}
+let saved = null; try{ saved = localStorage.getItem("samam-theme"); }catch(e){}
+setTheme(saved === "light" ? "light" : "dark");
+$("themeBtn").addEventListener("click", () => setTheme(root.getAttribute("data-theme")==="dark" ? "light" : "dark"));
+
+/* ---------- data ---------- */
+const JATIS = [{name:"Tisra",n:3},{name:"Chaturasra",n:4},{name:"Khaṇḍa",n:5},{name:"Miśra",n:7},{name:"Saṅkīrṇa",n:9}];
+const TALAS = [
+  {name:"Dhruva",angas:"LDLL"},{name:"Maṭya",angas:"LDL"},{name:"Rūpaka",angas:"DL"},
+  {name:"Jhampa",angas:"LUD"},{name:"Triputa",angas:"LDD"},{name:"Aṭa",angas:"LLDD"},{name:"Eka",angas:"L"}
+];
+const SYM = {L:"ǀ",D:"O",U:"U"}, ANGA = {L:"Laghu",D:"Drutam",U:"Anudrutam"};
+const SOL = {1:["ta"],2:["ta","ka"],3:["ta","ki","ta"],4:["ta","ka","di","mi"],5:["ta","ka","ta","ki","ta"],
+             7:["ta","ki","ta","ta","ka","di","mi"],9:["ta","ka","di","mi","ta","ka","ta","ki","ta"]};
+const FINGERS = ["Little finger","Ring finger","Middle finger","Index finger","Thumb","Little finger","Ring finger","Middle finger"];
+const HEARD = {"4-1":"Ādi Tāḷam, the most common tāḷa in concerts","3-3":"The form of Jhampa usually heard","5-2":"The form of Aṭa usually heard"};
+/* Beyond the 35: beats = how the hand keeps it; phrases = how it is recited */
+const BEYOND = [
+  {id:"khanda",label:"Khaṇḍa Chāpu",beats:[2,3],phrases:[2,3],name:"Khaṇḍa Chāpu",note:"A Chāpu tāḷa, outside the 35 and kept by beats rather than aṅgas. Five counts, 2 + 3: ta-ka · ta-ki-ta."},
+  {id:"misra",label:"Miśra Chāpu",beats:[3,2,2],phrases:[3,4],name:"Miśra Chāpu",note:"Outside the 35, kept by beats. Seven counts, 3 + 4: ta-ki-ta · ta-ka-di-mi, with the four often felt as 2 + 2."},
+  {id:"viloma",label:"Viloma Chāpu",beats:[2,2,3],phrases:[4,3],name:"Viloma Chāpu",note:"Miśra Chāpu reversed: 4 + 3, ta-ka-di-mi · ta-ki-ta."},
+  {id:"rupaka3",label:"Rūpaka, 3 beats",beats:[2,2,2],phrases:[2,2,2],name:"Rūpaka, as often kept",note:"The six counts of Chaturasra Rūpaka (2 + 4), kept in practice as three beats of two counts. Both readings are worth knowing."}
+];
+
+const st = {tala:4, jati:1, nadai:1, group:null, bpm:60, pulses:true, voice:"hands"};
+let cycle = [], kon = [];
+
+/* ---------- cycle + konnakol ---------- */
+function build(){
+  const c = [], k = [];
+  if (st.group){
+    const x = BEYOND.find(b=>b.id===st.group);
+    x.beats.forEach((len, gi) => { for (let i=0;i<len;i++) c.push({a:"G",gi,len,kind:i?"hold":"beat",g:i?"Hold":"Beat",lab:`Beat of ${len}`}); });
+    x.phrases.forEach((len, pi) => SOL[len].forEach((s,i)=>k.push({s, brk: i===0 && pi>0})));
+  } else {
+    const j = JATIS[st.jati];
+    [...TALAS[st.tala].angas].forEach((a, gi) => {
+      const len = a==="L" ? j.n : a==="D" ? 2 : 1;
+      if (a==="L") for (let i=0;i<len;i++) c.push({a,gi,len,kind:i?"finger":"clap",g:i?FINGERS[i-1]:"Clap",lab:`Laghu ǀ · ${j.name}, ${len} counts`});
+      else if (a==="D"){ c.push({a,gi,len,kind:"clap",g:"Clap",lab:"Drutam O · 2 counts"}); c.push({a,gi,len,kind:"wave",g:"Wave",lab:"Drutam O · 2 counts"}); }
+      else c.push({a,gi,len,kind:"clap",g:"Clap",lab:"Anudrutam U · 1 count"});
+      SOL[len].forEach((s,i)=>k.push({s, brk: i===0 && gi>0}));
+    });
+  }
+  cycle = c; kon = k;
+}
+
+/* ---------- glyphs ---------- */
+function shapes(angas){
+  const w = document.createElement("span"); w.className = "shape";
+  [...angas].forEach(a => {
+    const s = document.createElementNS(SVGNS,"svg"); s.setAttribute("width",a==="L"?5:11); s.setAttribute("height",11); s.setAttribute("aria-hidden","true");
+    s.innerHTML = a==="L" ? '<rect x="1" y="0.5" width="3" height="10" rx="1.5" fill="var(--laghu)"/>'
+      : a==="D" ? '<circle cx="5.5" cy="5.5" r="4" fill="none" stroke="var(--drutam)" stroke-width="1.8"/>'
+      : '<path d="M1.5 3 A4 4 0 0 0 9.5 3" fill="none" stroke="var(--anu)" stroke-width="1.8"/>';
+    w.append(s);
+  });
+  return w;
+}
+
+/* ---------- matrix (with nadai row) ---------- */
+function renderGrid(){
+  const t = $("grid"); t.innerHTML = "";
+  const thead = document.createElement("thead"), hr = document.createElement("tr");
+  hr.innerHTML = `<th><span class="label">Family</span></th>`;
+  JATIS.forEach(j => {
+    const th = document.createElement("th");
+    th.innerHTML = `<span class="jn">${j.name}</span><span class="jc">${j.n}</span>`;
+    const b = document.createElement("button"); b.type="button"; b.className="jsol"; b.textContent = SOL[j.n].join("​·");
+    b.setAttribute("aria-label", `Hear ${j.name} solkattu: ${SOL[j.n].join(" ")}`);
+    b.addEventListener("click", () => playSol(SOL[j.n], b));
+    th.append(b); hr.append(th);
+  });
+  thead.append(hr); t.append(thead);
+  const tb = document.createElement("tbody");
+  TALAS.forEach((tl, ti) => {
+    const tr = document.createElement("tr"), th = document.createElement("th"); th.scope="row";
+    th.innerHTML = `<span class="tn">${tl.name}</span>`; th.append(shapes(tl.angas)); tr.append(th);
+    JATIS.forEach((j, ji) => {
+      const td = document.createElement("td"), b = document.createElement("button");
+      const total = [...tl.angas].reduce((s,a)=>s+(a==="L"?j.n:a==="D"?2:1),0);
+      const cur = !st.group && st.tala===ti && st.jati===ji;
+      b.type="button"; b.className = "cell" + (HEARD[`${ti}-${ji}`]?" heard":"") + (cur?" cur":""); b.textContent = total;
+      b.setAttribute("aria-pressed", cur?"true":"false");
+      b.setAttribute("aria-label", `${j.name} Jāti ${tl.name}, ${total} counts`);
+      b.addEventListener("click", () => { st.group=null; st.tala=ti; st.jati=ji; update(); if (!playing || cur) toggle(); });
+      td.append(b); tr.append(td);
+    });
+    tb.append(tr);
+  });
+  t.append(tb);
+  const tf = document.createElement("tfoot"), fr = document.createElement("tr");
+  fr.innerHTML = `<th><span class="tn">Nadai</span><span class="jc">pulses per count</span></th>`;
+  JATIS.forEach((j, i) => {
+    const td = document.createElement("td"), b = document.createElement("button");
+    b.type="button"; b.className="nd"; b.textContent = j.n; b.title = `${j.name} nadai`;
+    b.setAttribute("aria-pressed", st.nadai===i?"true":"false");
+    b.setAttribute("aria-label", `${j.name} nadai, ${j.n} pulses per count`);
+    b.addEventListener("click", () => { st.nadai=i; update(); });
+    td.append(b); fr.append(td);
+  });
+  tf.append(fr); t.append(tf);
+  const by = $("beyond"); by.innerHTML = "";
+  BEYOND.forEach(x => {
+    const b = document.createElement("button"); b.type="button"; b.className="chip"; b.textContent = x.label;
+    const cur = st.group===x.id; b.setAttribute("aria-pressed", cur?"true":"false");
+    b.addEventListener("click", () => { st.group=x.id; update(); if (!playing || cur) toggle(); });
+    by.append(b);
+  });
+}
+
+/* ---------- readout ---------- */
+let konEls = [];
+function renderReadout(){
+  const N = cycle.length, nd = JATIS[st.nadai];
+  let name, alias = "", note = "", sum;
+  if (st.group){ const x = BEYOND.find(b=>b.id===st.group); name = x.name; note = x.note; sum = x.phrases.join(" + "); }
+  else {
+    const t = TALAS[st.tala], j = JATIS[st.jati];
+    name = `${j.name} Jāti ${t.name}`; alias = HEARD[`${st.tala}-${st.jati}`] || "";
+    sum = [...t.angas].map(a=>a==="L"?j.n:a==="D"?2:1).join(" + ");
+    if (st.tala===2) note = "Rūpaka is the only Sapta Tāḷa that begins with a drutam. In concerts it is often kept as three beats; see Beyond the 35.";
+  }
+  $("ttl").textContent = name; $("alias").textContent = alias; $("note").textContent = note;
+  $("formula").innerHTML = `<b>${sum} = ${N}</b> counts<br>× ${nd.n} · ${nd.name} nadai <span style="white-space:nowrap">(${SOL[nd.n].join("-")})</span> = <b>${N*nd.n}</b> pulses · ${(N*60/st.bpm).toFixed(1)} s a cycle`;
+  const kl = $("kline"); kl.innerHTML = ""; konEls = [];
+  kon.forEach(k => { if (k.brk){ const g = document.createElement("span"); g.className="gap"; kl.append(g); } const e = document.createElement("span"); e.textContent = k.s; kl.append(e); konEls.push(e); });
+}
+
+/* ---------- strip ---------- */
+let countEls = [], dotEls = [];
+function renderStrip(){
+  const s = $("strip"); s.innerHTML = ""; countEls = []; dotEls = [];
+  const nd = JATIS[st.nadai].n; let gi = -1, row = null;
+  cycle.forEach((c, i) => {
+    if (c.gi !== gi){
+      gi = c.gi;
+      const box = document.createElement("div"); box.className = "anga " + c.a;
+      const tag = document.createElement("div"); tag.className = "tag";
+      tag.textContent = c.a==="G" ? `Beat · ${c.len}` : `${SYM[c.a]}  ${ANGA[c.a]} · ${c.len}`;
+      row = document.createElement("div"); row.className = "counts"; box.append(tag,row); s.append(box);
+    }
+    const e = document.createElement("div"); e.className = "count" + (i===0?" samam":"");
+    e.innerHTML = `<span class="cn">${i+1}</span><span class="cg">${i===0 ? c.g+" · samam" : c.g}</span>`;
+    const dots = document.createElement("div"); dots.className="dots"; const my = [];
+    for (let d=0; d<nd; d++){ const x=document.createElement("span"); x.className="dot"; dots.append(x); my.push(x); }
+    e.append(dots); row.append(e); countEls.push(e); dotEls.push(my);
+  });
+}
+
+/* ---------- wheel ---------- */
+const CX=150, CY=150, R1=128, R0=84;
+let segs = [], hand = null;
+const col = a => a==="L"?"var(--laghu)":a==="D"?"var(--drutam)":a==="U"?"var(--anu)":"var(--pulse)";
+const tint = a => a==="L"?"var(--t-laghu)":a==="D"?"var(--t-drutam)":a==="U"?"var(--t-anu)":"var(--t-group)";
+const P = (r,a) => [CX + r*Math.sin(a), CY - r*Math.cos(a)];
+function arc(r0,r1,a0,a1){ const L=(a1-a0)>Math.PI?1:0,[x0,y0]=P(r1,a0),[x1,y1]=P(r1,a1),[x2,y2]=P(r0,a1),[x3,y3]=P(r0,a0);
+  return `M${x0},${y0} A${r1},${r1} 0 ${L} 1 ${x1},${y1} L${x2},${y2} A${r0},${r0} 0 ${L} 0 ${x3},${y3} Z`; }
+function E(tag, at){ const e=document.createElementNS(SVGNS,tag); for (const k in at) e.setAttribute(k, at[k]); return e; }
+function renderWheel(){
+  const w = $("wheel"); w.innerHTML = ""; segs = [];
+  const N = cycle.length, nd = JATIS[st.nadai].n, step = 2*Math.PI/N, gap = Math.min(.018, step*.07);
+  let a = 0;
+  cycle.forEach((c,i) => { if (i===0 || cycle[i-1].gi!==c.gi){ const span=c.len*step; w.append(E("path",{d:arc(R1+5,R1+10,a+gap,a+span-gap),fill:col(c.a)})); a+=span; } });
+  cycle.forEach((c,i) => {
+    const a0=i*step+gap, a1=(i+1)*step-gap;
+    const p = E("path",{d:arc(R0,R1,a0,a1),fill:tint(c.a)}); w.append(p);
+    const ticks=[];
+    for (let d=0; d<nd; d++){ const [x,y]=P(R0+9,a0+(a1-a0)*(d+.5)/nd); const t=E("circle",{cx:x,cy:y,r:Math.max(1.3,Math.min(2.6,50/(N*nd)+1)),fill:"var(--rule)"}); w.append(t); ticks.push(t); }
+    const [tx,ty]=P((R0+R1)/2+6,(a0+a1)/2);
+    const t=E("text",{x:tx,y:ty,"text-anchor":"middle","dominant-baseline":"central","font-family":"EB Garamond, Georgia, serif","font-size":N>20?10:N>12?13:16,fill:i===0?"var(--samam)":"var(--ink)"});
+    t.textContent=i+1; w.append(t); segs.push({p,ticks,base:tint(c.a)});
+  });
+  const [sx,sy]=P(R0-11,0); w.append(E("circle",{cx:sx,cy:sy,r:4.5,fill:"var(--samam)"}));
+  const c1=E("text",{x:CX,y:CY-2,"text-anchor":"middle","font-family":"EB Garamond, Georgia, serif","font-size":34,fill:"var(--ink)"}); c1.textContent=N;
+  const c2=E("text",{x:CX,y:CY+18,"text-anchor":"middle","font-family":"Source Sans 3, sans-serif","font-size":9.5,"letter-spacing":"1.6",fill:"var(--muted)"}); c2.textContent="COUNTS";
+  w.append(c1,c2);
+  hand=E("line",{x1:CX,y1:CY-R0+20,x2:CX,y2:CY-R1-2,stroke:"var(--samam)","stroke-width":1.8,"stroke-linecap":"round"}); w.append(hand);
+}
+
+/* ---------- highlight ---------- */
+let curC=-1, curP=-1;
+function show(p){
+  const nd=JATIS[st.nadai].n, ci=Math.floor(p/nd), di=p%nd;
+  if (ci!==curC){
+    if (curC>=0 && countEls[curC]){ countEls[curC].classList.remove("on"); segs[curC].p.setAttribute("fill",segs[curC].base); }
+    curC=ci; const c=cycle[ci];
+    if (countEls[ci]){ countEls[ci].classList.add("on"); segs[ci].p.setAttribute("fill","var(--t-on)"); }
+    konEls.forEach((e,i)=>e.classList.toggle("on", i===ci));
+    $("nowN").textContent=ci+1; $("nowG").textContent=c.g; $("nowA").textContent= ci===0 ? `Samam · ${c.lab}` : c.lab;
+  }
+  if (curP>=0){ const pc=Math.floor(curP/nd), pd=curP%nd; if (dotEls[pc]&&dotEls[pc][pd]){ dotEls[pc][pd].classList.remove("on"); segs[pc].ticks[pd].setAttribute("fill","var(--rule)"); } }
+  curP=p;
+  if (dotEls[ci]&&dotEls[ci][di]){ dotEls[ci][di].classList.add("on"); segs[ci].ticks[di].setAttribute("fill","var(--pulse)"); }
+}
+function setHand(f){ const a=f*2*Math.PI,[x0,y0]=P(R0-20,a),[x,y]=P(R1+2,a); hand.setAttribute("x1",x0); hand.setAttribute("y1",y0); hand.setAttribute("x2",x); hand.setAttribute("y2",y); }
+function resetHL(){
+  curC=-1; curP=-1; if (hand) setHand(0);
+  $("nowN").textContent="1"; $("nowG").textContent=cycle[0].g; $("nowA").textContent="Samam · "+cycle[0].lab;
+  konEls.forEach(e=>e.classList.remove("on"));
+}
+
+/* ---------- audio ---------- */
+let ac=null, nb=null;
+function audio(){
+  if (!ac){ const A=window.AudioContext||window.webkitAudioContext; if (!A) return null; ac=new A();
+    nb=ac.createBuffer(1,ac.sampleRate*.5,ac.sampleRate); const d=nb.getChannelData(0); for (let i=0;i<d.length;i++) d[i]=Math.random()*2-1; }
+  if (ac.state==="suspended") ac.resume(); return ac;
+}
+function noise(t,f,q,dur,g){ const s=ac.createBufferSource(); s.buffer=nb; const bp=ac.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value=f; bp.Q.value=q;
+  const G=ac.createGain(); G.gain.setValueAtTime(g,t); G.gain.exponentialRampToValueAtTime(.001,t+dur); s.connect(bp).connect(G).connect(ac.destination); s.start(t); s.stop(t+dur+.02); }
+function tone(t,f,dur,g,type="sine",f2){ const o=ac.createOscillator(); o.type=type; o.frequency.setValueAtTime(f,t); if (f2) o.frequency.exponentialRampToValueAtTime(f2,t+dur);
+  const G=ac.createGain(); G.gain.setValueAtTime(g,t); G.gain.exponentialRampToValueAtTime(.001,t+dur); o.connect(G).connect(ac.destination); o.start(t); o.stop(t+dur+.02); }
+const SND = {
+  clap:t=>{noise(t,1300,1.2,.09,.9);noise(t+.008,900,1.5,.07,.5);},
+  beat:t=>noise(t,1300,1.2,.09,.9),
+  finger:t=>tone(t,1150,.05,.33,"triangle"),
+  hold:t=>tone(t,1150,.04,.16,"triangle"),
+  wave:t=>noise(t,520,.8,.16,.35),
+  samam:t=>tone(t,150,.35,.5,"sine",90),
+  pulse:t=>tone(t,2400,.025,.1)
+};
+const STROKE = {
+  ta:t=>{tone(t,330,.12,.45,"triangle",260);noise(t,2000,2,.04,.25);},
+  ka:t=>noise(t,2600,3,.05,.5),
+  ki:t=>{noise(t,3200,3,.04,.45);tone(t,900,.04,.12,"triangle");},
+  di:t=>tone(t,220,.18,.5,"sine",180),
+  mi:t=>tone(t,520,.1,.3,"triangle",470)
+};
+
+/* ---------- metronome ---------- */
+let playing=false, nextT=0, pIdx=0, timer=null, queue=[], raf=0, lastT=0;
+const spp = () => 60/st.bpm/JATIS[st.nadai].n;
+function sched(){
+  while (nextT < ac.currentTime+.12){
+    const nd=JATIS[st.nadai].n, ci=Math.floor(pIdx/nd), di=pIdx%nd;
+    if (di===0){
+      if (st.voice==="kon" && kon[ci]) STROKE[kon[ci].s](nextT); else SND[cycle[ci].kind](nextT);
+      if (ci===0) SND.samam(nextT);
+    } else if (st.pulses) SND.pulse(nextT);
+    queue.push({t:nextT,p:pIdx}); nextT+=spp(); pIdx=(pIdx+1)%(cycle.length*nd);
+  }
+}
+function draw(){
+  if (!playing) return;
+  const now=ac.currentTime;
+  while (queue.length && queue[0].t<=now){ const q=queue.shift(); lastT=q.t; show(q.p); }
+  if (curP>=0) setHand(Math.min(1,(curP+Math.min(1,(now-lastT)/spp()))/(cycle.length*JATIS[st.nadai].n)));
+  raf=requestAnimationFrame(draw);
+}
+const ICON_PLAY='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z" fill="currentColor"/></svg>';
+const ICON_STOP='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5" fill="currentColor"/></svg>';
+function start(){
+  if (!audio()){ $("note").textContent="This browser cannot play sound; the patterns can still be explored."; return; }
+  stopSol(); playing=true; queue=[]; pIdx=0; nextT=ac.currentTime+.08; resetHL();
+  sched(); timer=setInterval(sched,25); raf=requestAnimationFrame(draw);
+  $("play").setAttribute("aria-pressed","true"); $("play").setAttribute("aria-label","Stop"); $("play").innerHTML=ICON_STOP;
+}
+function stop(){
+  playing=false; clearInterval(timer); cancelAnimationFrame(raf); queue=[];
+  $("play").setAttribute("aria-pressed","false"); $("play").setAttribute("aria-label","Play"); $("play").innerHTML=ICON_PLAY;
+  countEls.forEach(e=>e.classList.remove("on")); dotEls.flat().forEach(d=>d.classList.remove("on"));
+  segs.forEach(s=>{ s.p.setAttribute("fill",s.base); s.ticks.forEach(t=>t.setAttribute("fill","var(--rule)")); });
+  resetHL();
+}
+function toggle(){ playing ? stop() : start(); }
+
+/* ---------- solkattu in column headers ---------- */
+let solT=null, solBtn=null;
+function stopSol(){ if (solT){ clearTimeout(solT); solT=null; } if (solBtn){ solBtn.classList.remove("on"); solBtn=null; } }
+function playSol(list, btn){
+  const mine = solBtn===btn; stopSol(); if (mine) return;
+  if (!audio()) return; if (playing) stop();
+  solBtn=btn; btn.classList.add("on");
+  const step=60/Math.max(st.bpm,60)/2, t0=ac.currentTime+.05, reps=2;
+  for (let r=0;r<reps;r++) list.forEach((s,i)=>STROKE[s](t0+(r*list.length+i)*step));
+  solT=setTimeout(stopSol,(reps*list.length*step+.2)*1000);
+}
+
+/* ---------- guide ---------- */
+const dlg=$("guide");
+const openGuide=()=>{ try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } };
+const closeGuide=()=>{ try{ dlg.close(); }catch(e){ dlg.removeAttribute("open"); } };
+$("guideBtn").addEventListener("click", openGuide);
+$("guideClose").addEventListener("click", closeGuide);
+$("guideGo").addEventListener("click", () => { closeGuide(); st.group=null; st.tala=4; st.jati=1; update(); if (!playing) toggle(); });
+dlg.addEventListener("click", e => { if (e.target===dlg) closeGuide(); });
+
+/* ---------- wiring ---------- */
+function update(){
+  build(); renderGrid(); renderReadout(); renderStrip(); renderWheel();
+  if (playing){ queue=[]; pIdx=0; nextT=ac.currentTime+.06; curC=-1; curP=-1; } else resetHL();
+}
+function setVoice(v){ st.voice=v; $("vHands").setAttribute("aria-pressed", v==="hands"?"true":"false"); $("vKon").setAttribute("aria-pressed", v==="kon"?"true":"false"); }
+$("vHands").addEventListener("click", ()=>setVoice("hands"));
+$("vKon").addEventListener("click", ()=>setVoice("kon"));
+$("play").innerHTML=ICON_PLAY;
+$("play").addEventListener("click", toggle);
+$("laya").addEventListener("input", e => { st.bpm=+e.target.value; $("layaOut").textContent=`${st.bpm} / min`; renderReadout(); });
+$("pulses").addEventListener("change", e => st.pulses=e.target.checked);
+document.addEventListener("keydown", e => {
+  if (dlg.open) return;
+  const tag = document.activeElement.tagName;
+  if (/INPUT|TEXTAREA|SELECT/.test(tag)) return;
+  if (e.code==="Space" && tag!=="BUTTON"){ e.preventDefault(); toggle(); return; }
+  const mv = {ArrowLeft:[0,-1],ArrowRight:[0,1],ArrowUp:[-1,0],ArrowDown:[1,0]}[e.key];
+  if (mv){ e.preventDefault(); if (st.group){ st.group=null; } else { st.tala=(st.tala+mv[0]+7)%7; st.jati=(st.jati+mv[1]+5)%5; } update(); }
+});
+update();
+})();
+</script>
+</body>
+</html>
