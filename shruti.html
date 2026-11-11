@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Shruti: an interactive tambura and swarasthāna explorer for Carnatic music.">
+<meta name="author" content="Lakshmi Ganesan">
+<meta name="theme-color" content="#12141f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Shruti</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Mukta:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* One visual world: a lamp-lit night room, brass on deep ink. Layout: instrument on top, controls below, one column. */
+  --night:#12141f;
+  --panel:#1a1d2b;
+  --line:#2b2f42;
+  --ivory:#efe6d2;
+  --muted:#9d97a8;
+  --brass:#d9a441;
+  --brass-dim:rgba(217,164,65,.18);
+  --key-white:#e8dfca;
+  --key-black:#262a3b;
+  --display:"Marcellus","Cormorant Garamond",Georgia,serif;
+  --body:"Mukta","Noto Sans","Segoe UI",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--night);color:var(--ivory);font-family:var(--body);font-weight:400;line-height:1.5;
+  background-image:radial-gradient(ellipse 80% 50% at 50% 0%, rgba(217,164,65,.10), transparent 70%)}
+.wrap{max-width:860px;margin:0 auto;padding:28px 20px 48px;display:flex;flex-direction:column;gap:22px}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+h1{font-family:var(--display);font-weight:400;font-size:44px;line-height:1;margin:0;letter-spacing:.02em}
+.sub{color:var(--muted);font-size:15px;margin-top:6px}
+.scripts{font-size:18px;color:var(--brass);opacity:.85}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+.label{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+
+/* instrument */
+.stage{display:grid;grid-template-columns:1fr 240px;gap:18px;align-items:stretch}
+#strings{width:100%;height:250px;display:block;border-radius:10px;background:linear-gradient(180deg,#171a28,#141623)}
+.readout{display:flex;flex-direction:column;gap:14px;justify-content:space-between}
+.sa-big{font-family:var(--display);font-size:40px;line-height:1.05;color:var(--brass)}
+.sa-meta{color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+.rows{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px;font-variant-numeric:tabular-nums}
+.rows dt{color:var(--muted)}
+.rows dd{margin:0;text-align:right}
+.play{appearance:none;border:1px solid var(--brass);background:var(--brass);color:#1a1408;font-family:var(--body);font-weight:600;
+  font-size:17px;padding:12px 18px;border-radius:999px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px}
+.play[aria-pressed="true"]{background:transparent;color:var(--brass)}
+.play:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--ivory);outline-offset:3px}
+.status{font-size:13px;color:var(--muted);min-height:1.2em;text-align:center}
+
+/* kattai keyboard */
+.kb{position:relative;height:150px;user-select:none}
+.whites{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;height:100%}
+.key{appearance:none;border:none;cursor:pointer;font-family:var(--body);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 0 10px;border-radius:0 0 8px 8px;transition:background .15s, transform .1s}
+.key.w{background:var(--key-white);color:#2a2622}
+.key.b{position:absolute;top:0;height:60%;width:calc(100% / 9 * .62);background:var(--key-black);color:var(--ivory);border:1px solid #3a3f55;z-index:2;padding-bottom:8px}
+.key .k{font-size:17px;font-weight:600;line-height:1}
+.key .n{font-size:11px;opacity:.7;margin-top:3px}
+.key .lo{font-size:9px;letter-spacing:.08em;text-transform:uppercase;opacity:.65}
+.key[aria-pressed="true"].w{background:var(--brass);color:#1a1408}
+.key[aria-pressed="true"].b{background:var(--brass);color:#1a1408;border-color:var(--brass)}
+.key:active{transform:translateY(1px)}
+.bands{display:grid;grid-template-columns:repeat(18,1fr);margin-top:10px;font-size:12px;color:var(--muted)}
+.band{border-top:2px solid var(--line);padding-top:4px;text-align:center}
+.band.on{border-top-color:var(--brass);color:var(--ivory)}
+
+/* controls */
+.ctrls{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.seg button{appearance:none;border:1px solid var(--line);background:transparent;color:var(--ivory);font-family:var(--body);
+  padding:10px 6px;border-radius:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.seg button .t{font-size:16px;font-weight:600}
+.seg button .d{font-size:12px;color:var(--muted)}
+.seg button[aria-pressed="true"]{border-color:var(--brass);background:var(--brass-dim)}
+.hint{font-size:13px;color:var(--muted);margin:10px 0 0}
+.slider{display:grid;grid-template-columns:96px 1fr 64px;align-items:center;gap:10px;font-size:14px}
+.slider + .slider{margin-top:10px}
+.slider output{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+input[type=range]{width:100%;accent-color:var(--brass)}
+
+/* swara ladder */
+.ladwrap{overflow-x:auto;padding-bottom:4px}
+.ladder{position:relative;height:150px;min-width:600px;margin:0 30px}
+.ladder::before{content:"";position:absolute;left:0;right:0;top:75px;height:2px;border-radius:2px;
+  background:linear-gradient(90deg,var(--brass),rgba(217,164,65,.35) 50%,var(--brass))}
+.sw{position:absolute;top:0;height:100%;width:52px;transform:translateX(-50%);display:grid;grid-template-rows:1fr 22px 1fr;
+  justify-items:center;background:none;border:none;border-radius:10px;padding:0;cursor:pointer;color:var(--ivory);font-family:var(--body)}
+.sw:hover{background:rgba(217,164,65,.06)}
+.sw .up{align-self:end;display:flex;flex-direction:column;align-items:center;gap:0;padding-bottom:4px}
+.sw .down{align-self:start;padding-top:4px}
+.sw .h{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.sw .s,.sw .alt{font-family:var(--display);font-size:20px;line-height:1.1}
+.sw .alt{color:#c9c2b2}
+.sw .dot{align-self:center;width:10px;height:10px;border-radius:50%;background:#6d6878;border:2px solid var(--panel)}
+.sw.anchor .dot{width:14px;height:14px;background:var(--brass)}
+.sw.ring .s,.sw.ring .alt{color:var(--brass)}
+.sw.ring .dot{background:var(--brass);box-shadow:0 0 0 5px var(--brass-dim)}
+.swinfo{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:baseline;margin-top:14px;font-size:14px;font-variant-numeric:tabular-nums}
+.swinfo b{font-family:var(--display);font-weight:400;font-size:20px;color:var(--brass)}
+.swinfo span{color:var(--muted)}
+footer{color:var(--muted);font-size:14px;text-align:center;display:flex;flex-direction:column;gap:4px}
+footer .fine{font-size:12px;opacity:.75}
+
+@media (max-width:640px){
+  h1{font-size:36px}
+  .stage{grid-template-columns:1fr}
+  .ctrls{grid-template-columns:1fr}
+  .kb{height:128px}
+  .key .n{display:none}
+  .key .k{font-size:15px}
+  .bands{font-size:11px}
+}
+@media (prefers-reduced-motion:reduce){ .key,.play{transition:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Shruti</h1>
+      <div class="sub">Choose your Sa. Let the tambura hold it.</div>
+    </div>
+    <div class="scripts" lang="ta">ஸ்ருதி · <span lang="sa">श्रुति</span></div>
+  </header>
+
+  <section class="panel stage" aria-label="Tambura">
+    <canvas id="strings" aria-hidden="true"></canvas>
+    <div class="readout">
+      <div>
+        <div class="sa-big" id="saBig">4½ kaṭṭai</div>
+        <div class="sa-meta" id="saMeta">Sa = F♯3 · 185.0 Hz</div>
+      </div>
+      <dl class="rows" id="stringRows"></dl>
+      <div>
+        <button class="play" id="play" aria-pressed="false"><span id="playIcon">▶</span><span id="playText">Play tambura</span></button>
+        <div class="status" id="status" aria-live="polite">Space bar starts and stops</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="kbLabel">
+    <p class="label" id="kbLabel">Kaṭṭai · your Sa</p>
+    <div class="kb" id="kb">
+      <div class="whites" id="whites"></div>
+    </div>
+    <div class="bands" aria-hidden="true">
+      <div class="band" style="grid-column:1 / span 4" data-band="deep">Deep male</div>
+      <div class="band" style="grid-column:5 / span 5" data-band="male">Most men</div>
+      <div class="band" style="grid-column:12 / span 5" data-band="female">Most women</div>
+    </div>
+  </section>
+
+  <section class="ctrls">
+    <div class="panel">
+      <p class="label">First string</p>
+      <div class="seg" id="tuning">
+        <button data-t="pa" aria-pressed="true"><span class="t">Pa</span><span class="d">Pañcama</span></button>
+        <button data-t="ma" aria-pressed="false"><span class="t">Ma</span><span class="d">Madhyama</span></button>
+        <button data-t="ni" aria-pressed="false"><span class="t">Ni</span><span class="d">Niṣāda</span></button>
+      </div>
+      <p class="hint" id="tuneHint">The default. Pa is the 3rd harmonic of Sa, so it blends into the drone.</p>
+    </div>
+    <div class="panel">
+      <p class="label">Sound</p>
+      <div class="slider"><label for="fine">Fine tune</label><input id="fine" type="range" min="-50" max="50" step="1" value="0"><output id="fineOut">0 ¢</output></div>
+      <div class="slider"><label for="tempo">Cycle</label><input id="tempo" type="range" min="2.4" max="7" step="0.1" value="4.2"><output id="tempoOut">4.2 s</output></div>
+      <div class="slider"><label for="jivari">Jivāri</label><input id="jivari" type="range" min="0" max="1" step="0.01" value="0.6"><output id="jivariOut">60%</output></div>
+      <div class="slider"><label for="vol">Volume</label><input id="vol" type="range" min="0" max="1" step="0.01" value="0.7"><output id="volOut">70%</output></div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="ladLabel">
+    <p class="label" id="ladLabel">The 12 swarasthānas · tap to hear against the drone</p>
+    <div class="ladwrap"><div class="ladder" id="ladder"></div></div>
+    <div class="swinfo" id="swinfo" aria-live="polite"></div>
+    <p class="hint">Twelve positions, spaced by true pitch distance. Names below the line share a position with the name above it; the rāga decides which name a note takes. Ratios are just intonation, so they will differ from a keyboard by a few cents.</p>
+  </section>
+
+  <footer>
+    <div>Visualization by Lakshmi Ganesan · November 12, 2026</div>
+    <div class="fine">Sound is synthesised in your browser: plucked strings modelled on the tambura's jivāri bridge.</div>
+  </footer>
+</div>
+
+<script>
+(() => {
+  // ---------- data ----------
+  // midi numbers: A2 = 45 ... B3 = 59
+  const KATTAI = [
+    {id:'L6',  k:'6',  low:true,  note:'A2',  midi:45, black:false},
+    {id:'L65', k:'6½', low:true,  note:'A♯2', midi:46, black:true},
+    {id:'L7',  k:'7',  low:true,  note:'B2',  midi:47, black:false},
+    {id:'1',   k:'1',  note:'C3',  midi:48, black:false},
+    {id:'15',  k:'1½', note:'C♯3', midi:49, black:true},
+    {id:'2',   k:'2',  note:'D3',  midi:50, black:false},
+    {id:'25',  k:'2½', note:'D♯3', midi:51, black:true},
+    {id:'3',   k:'3',  note:'E3',  midi:52, black:false},
+    {id:'4',   k:'4',  note:'F3',  midi:53, black:false},
+    {id:'45',  k:'4½', note:'F♯3', midi:54, black:true},
+    {id:'5',   k:'5',  note:'G3',  midi:55, black:false},
+    {id:'55',  k:'5½', note:'G♯3', midi:56, black:true},
+    {id:'6',   k:'6',  note:'A3',  midi:57, black:false},
+    {id:'65',  k:'6½', note:'A♯3', midi:58, black:true},
+    {id:'7',   k:'7',  note:'B3',  midi:59, black:false},
+  ];
+  const TUNINGS = {
+    pa:{name:'Pa', full:'mandra Pa', ratio:3/4, hint:'The default. Pa is the 3rd harmonic of Sa, so it blends into the drone.'},
+    ma:{name:'Ma', full:'mandra Ma', ratio:2/3, hint:'For rāgas without Pa, such as Hindoḷam or Śrīrañjani. Ma sits a fourth above Sa.'},
+    ni:{name:'Ni', full:'mandra Ni', ratio:15/16, hint:'Kākali Ni, a semitone below Sa. Rare in Carnatic music; used for some Hindustani evening rāgas.'},
+  };
+  // 12 swarasthānas, just-intonation ratios. Shared positions carry two names.
+  const SWARAS = [
+    {s:'S',  sub:'',  alt:'', v:1,     r:'1',     names:'Ṣaḍjam'},
+    {s:'R',  sub:'₁', alt:'', v:16/15, r:'16/15', names:'Śuddha Ṛṣabham'},
+    {s:'R',  sub:'₂', alt:'G₁', v:9/8, r:'9/8',   names:'Catuḥśruti Ṛṣabham · Śuddha Gāndhāram'},
+    {s:'R',  sub:'₃', alt:'G₂', v:6/5, r:'6/5',   names:'Ṣaṭśruti Ṛṣabham · Sādhāraṇa Gāndhāram'},
+    {s:'G',  sub:'₃', alt:'', v:5/4,   r:'5/4',   names:'Antara Gāndhāram'},
+    {s:'M',  sub:'₁', alt:'', v:4/3,   r:'4/3',   names:'Śuddha Madhyamam'},
+    {s:'M',  sub:'₂', alt:'', v:45/32, r:'45/32', names:'Prati Madhyamam'},
+    {s:'P',  sub:'',  alt:'', v:3/2,   r:'3/2',   names:'Pañcamam'},
+    {s:'D',  sub:'₁', alt:'', v:8/5,   r:'8/5',   names:'Śuddha Dhaivatam'},
+    {s:'D',  sub:'₂', alt:'N₁', v:5/3, r:'5/3',   names:'Catuḥśruti Dhaivatam · Śuddha Niṣādam'},
+    {s:'D',  sub:'₃', alt:'N₂', v:16/9,r:'16/9',  names:'Ṣaṭśruti Dhaivatam · Kaiśiki Niṣādam'},
+    {s:'N',  sub:'₃', alt:'', v:15/8,  r:'15/8',  names:'Kākali Niṣādam'},
+    {s:'Ṡ',  sub:'',  alt:'', v:2,     r:'2',     names:'Tāra Ṣaḍjam'},
+  ];
+
+  const state = {kattai:'45', tuning:'pa', cents:0, cycle:4.2, jivari:0.6, vol:0.7, playing:false};
+  try {
+    const saved = JSON.parse(localStorage.getItem('shruti-settings') || 'null');
+    if (saved && KATTAI.some(x => x.id === saved.kattai)) Object.assign(state, saved, {playing:false});
+  } catch (e) {}
+  const save = () => { try { const {playing, ...rest} = state; localStorage.setItem('shruti-settings', JSON.stringify(rest)); } catch (e) {} };
+
+  const $ = id => document.getElementById(id);
+  const cur = () => KATTAI.find(x => x.id === state.kattai);
+  const saHz = () => 440 * Math.pow(2, (cur().midi - 69) / 12) * Math.pow(2, state.cents / 1200);
+  const stringHz = () => {
+    const sa = saHz();
+    return [sa * TUNINGS[state.tuning].ratio, sa, sa, sa / 2];
+  };
+  const stringNames = () => [TUNINGS[state.tuning].full, 'madhya Sa', 'madhya Sa', 'mandra Sa'];
+
+  // ---------- UI build ----------
+  const whites = $('whites'), kb = $('kb');
+  const keyEls = {};
+  const whiteList = KATTAI.filter(x => !x.black);
+  whiteList.forEach(x => {
+    const b = document.createElement('button');
+    b.className = 'key w'; b.id = 'key-' + x.id;
+    b.innerHTML = (x.low ? '<span class="lo">low</span>' : '') + `<span class="k">${x.k}</span><span class="n">${x.note}</span>`;
+    b.setAttribute('aria-label', `${x.low ? 'Low ' : ''}${x.k} kaṭṭai, ${x.note}`);
+    b.addEventListener('click', () => setKattai(x.id));
+    whites.appendChild(b); keyEls[x.id] = b;
+  });
+  KATTAI.forEach((x, i) => {
+    if (!x.black) return;
+    const leftWhite = whiteList.indexOf(KATTAI[i - 1]);
+    const b = document.createElement('button');
+    b.className = 'key b'; b.id = 'key-' + x.id;
+    b.style.left = `calc(${(leftWhite + 1) / 9 * 100}% - (100% / 9 * .31) - 2px)`;
+    b.innerHTML = (x.low ? '<span class="lo">low</span>' : '') + `<span class="k">${x.k}</span><span class="n">${x.note}</span>`;
+    b.setAttribute('aria-label', `${x.low ? 'Low ' : ''}${x.k} kaṭṭai, ${x.note}`);
+    b.addEventListener('click', () => setKattai(x.id));
+    kb.appendChild(b); keyEls[x.id] = b;
+  });
+
+  const ladder = $('ladder');
+  const swEls = SWARAS.map((sw, i) => {
+    const b = document.createElement('button');
+    b.className = 'sw' + ([0, 7, 12].includes(i) ? ' anchor' : '');
+    b.style.left = (1200 * Math.log2(sw.v) / 1200 * 100) + '%';
+    b.innerHTML = `<span class="up"><span class="h"></span><span class="s">${sw.s}${sw.sub}</span></span><span class="dot"></span>` +
+      `<span class="down">${sw.alt ? `<span class="alt">${sw.alt}</span>` : ''}</span>`;
+    b.setAttribute('aria-label', sw.names);
+    b.title = `${sw.names} · ${sw.r}`;
+    b.addEventListener('click', () => { lastSw = i; playSwara(sw, b); showSw(); });
+    ladder.appendChild(b);
+    return b;
+  });
+  let lastSw = 4;
+  function showSw(){
+    const sw = SWARAS[lastSw], hz = saHz() * sw.v, c = 1200 * Math.log2(sw.v);
+    const et = Math.round(c / 100) * 100, diff = Math.round(c - et);
+    $('swinfo').innerHTML = `<b>${sw.s}${sw.sub}${sw.alt ? ' = ' + sw.alt : ''}</b><strong>${sw.names}</strong>` +
+      `<span>ratio ${sw.r} · ${c.toFixed(0)} cents · ${hz.toFixed(1)} Hz` +
+      (diff ? ` · ${Math.abs(diff)} ¢ ${diff < 0 ? 'below' : 'above'} the keyboard note` : ' · same as the keyboard note') + `</span>`;
+  }
+
+  function fmt(hz){ return hz.toFixed(1) + ' Hz'; }
+  function render(){
+    const x = cur();
+    Object.entries(keyEls).forEach(([id, el]) => el.setAttribute('aria-pressed', id === state.kattai ? 'true' : 'false'));
+    $('saBig').textContent = `${x.low ? 'Low ' : ''}${x.k} kaṭṭai`;
+    const c = state.cents ? ` · ${state.cents > 0 ? '+' : ''}${state.cents} ¢` : '';
+    $('saMeta').textContent = `Sa = ${x.note} · ${fmt(saHz())}${c}`;
+    const hz = stringHz(), names = stringNames();
+    $('stringRows').innerHTML = hz.map((h, i) => `<dt>${i + 1} · ${names[i]}</dt><dd>${fmt(h)}</dd>`).join('');
+    document.querySelectorAll('#tuning button').forEach(b => b.setAttribute('aria-pressed', b.dataset.t === state.tuning ? 'true' : 'false'));
+    $('tuneHint').textContent = TUNINGS[state.tuning].hint;
+    const sa = saHz();
+    swEls.forEach((el, i) => { el.querySelector('.h').textContent = (sa * SWARAS[i].v).toFixed(1); });
+    showSw();
+    swEls.forEach((x, i) => x.classList.toggle('ring', i === lastSw));
+    const m = x.midi;
+    document.querySelectorAll('.band').forEach(b => {
+      const band = b.dataset.band;
+      const on = (band === 'deep' && m <= 47) || (band === 'male' && m >= 48 && m <= 51) || (band === 'female' && m >= 54 && m <= 57);
+      b.classList.toggle('on', on);
+    });
+    $('fine').value = state.cents; $('fineOut').textContent = `${state.cents > 0 ? '+' : ''}${state.cents} ¢`;
+    $('tempo').value = state.cycle; $('tempoOut').textContent = `${(+state.cycle).toFixed(1)} s`;
+    $('jivari').value = state.jivari; $('jivariOut').textContent = `${Math.round(state.jivari * 100)}%`;
+    $('vol').value = state.vol; $('volOut').textContent = `${Math.round(state.vol * 100)}%`;
+  }
+
+  // ---------- audio ----------
+  let ctx = null, master, dry, wet, buffers = null, renderToken = 0;
+  let schedTimer = null, nextTime = 0, step = 0, cycleStart = 0;
+  const lastVoice = [null, null, null, null];
+  const events = [];
+  const PATTERN = [0, 0.23, 0.46, 0.69];
+
+  function ensureCtx(){
+    if (ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    ctx = new AC({latencyHint:'playback'});
+    master = ctx.createGain(); master.gain.value = state.vol;
+    // gentle voicing: clear the sub-rumble, warm the gourd region, open the top
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 42; hp.Q.value = 0.7;
+    const warm = ctx.createBiquadFilter(); warm.type = 'peaking'; warm.frequency.value = 190; warm.Q.value = 0.9; warm.gain.value = 1.5;
+    const air = ctx.createBiquadFilter(); air.type = 'highshelf'; air.frequency.value = 3800; air.gain.value = 2.5;
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -12; comp.ratio.value = 2.5; comp.attack.value = 0.01; comp.release.value = 0.4;
+    dry = ctx.createGain(); dry.gain.value = 0.9;
+    wet = ctx.createGain(); wet.gain.value = 0.38;
+    const conv = ctx.createConvolver(); conv.buffer = makeIR(3.2);
+    master.connect(hp); hp.connect(warm); warm.connect(air);
+    air.connect(dry); air.connect(conv); conv.connect(wet);
+    dry.connect(comp); wet.connect(comp); comp.connect(ctx.destination);
+  }
+
+  // Impulse response: the gourd's own resonances, early reflections, then a soft room tail.
+  function makeIR(sec){
+    const sr = ctx.sampleRate, n = Math.floor(sec * sr);
+    const ir = ctx.createBuffer(2, n, sr);
+    const modes = [[118, .32, .55], [232, .24, .38], [405, .18, .26], [690, .11, .16], [1140, .07, .10], [1720, .04, .07]];
+    for (let ch = 0; ch < 2; ch++){
+      const d = ir.getChannelData(ch); let lp = 0;
+      modes.forEach(([f, a, tau]) => {
+        const ff = f * (1 + (ch ? 0.012 : -0.008)), ph = Math.random() * 6.28;
+        for (let i = 0; i < n; i++){ const t = i / sr; if (t > tau * 6) break; d[i] += a * Math.exp(-t / tau) * Math.sin(6.283185 * ff * t + ph); }
+      });
+      [0.011, 0.019, 0.027, 0.041, 0.058].forEach((t0, j) => { const i = Math.floor((t0 + (ch ? 0.003 : 0)) * sr); d[i] += (0.5 - j * 0.07) * (j % 2 ? -1 : 1); });
+      for (let i = 0; i < n; i++){
+        const t = i / sr;
+        const v = (Math.random() * 2 - 1) * Math.exp(-t * 2.1) * Math.min(1, t / 0.02);
+        lp = lp * 0.6 + v * 0.4;
+        d[i] += lp * 0.55;
+      }
+      let pk = 0; for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(d[i]));
+      for (let i = 0; i < n; i++) d[i] /= pk * 1.6;
+    }
+    return ir;
+  }
+
+  // A tambura string, built partial by partial (self-contained so it can run in a worker).
+  // Jivāri model: the string grazes the curved bridge, so (1) a bright band of overtones
+  // sweeps downward as the pluck decays, (2) a moving comb of notches gives the swirling,
+  // phaser-like shimmer, (3) the first instants carry an extra metallic twang.
+  // Each partial also beats gently, like a real string's two planes of vibration, differently in L and R.
+  function renderString(f, bright, dur, sr, seed){
+    let st = seed >>> 0;
+    const rnd = () => { st += 0x6D2B79F5; let t = st; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+    const N = Math.floor(dur * sr), L = new Float32Array(N), R = new Float32Array(N);
+    const maxF = Math.min(sr * 0.46, 13000);
+    const K = Math.min(150, Math.floor(maxF / f));
+    const BL = 64, TWO_PI = 6.283185307;
+    for (let k = 1; k <= K; k++){
+      const fk = k * f * Math.sqrt(1 + 0.000004 * k * k);
+      if (fk > maxF) break;
+      const w = TWO_PI * fk / sr, cr = Math.cos(w), ci = Math.sin(w);
+      const ph = rnd() * TWO_PI;
+      let re = Math.cos(ph), im = Math.sin(ph);
+      const base = k === 1 ? 0.6 : 1.15 / Math.pow(k, 0.72);
+      const decay = 0.17 + 0.011 * k + 0.00022 * k * k;
+      const m = 0.10 + 0.22 * Math.min(1, k / 10);
+      const rL = 0.12 + rnd() * 0.9, rR = 0.12 + rnd() * 0.9, pL = rnd() * TWO_PI, pR = rnd() * TWO_PI;
+      const twK = Math.min(1, fk / 2400);
+      let aL0 = 0, aR0 = 0;
+      for (let b0 = 0; b0 < N; b0 += BL){
+        const t = (b0 + BL) / sr;
+        const beta = 0.011 + 0.052 * (1 - Math.exp(-t / 1.7));
+        const comb = 1 - bright * 0.72 * (1 - Math.abs(Math.sin(Math.PI * k * beta)));
+        const fc = 380 + 3700 * Math.exp(-t / 1.35);
+        const dd = Math.log2(fk / fc);
+        const band = 1 + bright * 4.6 * Math.exp(-(dd * dd) / 0.22) * (0.35 + 0.65 * Math.exp(-t * 0.32));
+        const twang = 1 + 2.4 * Math.exp(-t / 0.032) * twK;
+        const env = base * Math.exp(-decay * t) * band * comb * twang * Math.min(1, t / 0.0025);
+        const aL = env * (1 + m * Math.sin(TWO_PI * rL * t + pL));
+        const aR = env * (1 + m * Math.sin(TWO_PI * rR * t + pR));
+        const end = Math.min(N, b0 + BL), n = end - b0;
+        const sL = (aL - aL0) / n, sR = (aR - aR0) / n;
+        let xL = aL0, xR = aR0;
+        for (let i = b0; i < end; i++){
+          L[i] += xL * im; R[i] += xR * im;
+          const nr = re * cr - im * ci; im = re * ci + im * cr; re = nr;
+          xL += sL; xR += sR;
+        }
+        const mag = Math.sqrt(re * re + im * im); re /= mag; im /= mag;
+        aL0 = aL; aR0 = aR;
+        if (env < 2e-5 && t > 0.6) break;
+      }
+    }
+    // the pluck itself: a few milliseconds of bright fingertip-on-wire noise
+    let prev = 0;
+    const nN = Math.floor(0.018 * sr);
+    for (let i = 0; i < nN; i++){
+      const x = (rnd() * 2 - 1) * Math.exp(-i / (0.0035 * sr));
+      const hpv = x - prev; prev = x;
+      L[i] += hpv * 0.35; R[i] += hpv * 0.32;
+    }
+    const fade = Math.floor(0.5 * sr);
+    for (let i = 0; i < fade; i++){ const g = i / fade; L[N - 1 - i] *= g; R[N - 1 - i] *= g; }
+    let peak = 0; for (let i = 0; i < N; i++) peak = Math.max(peak, Math.abs(L[i]), Math.abs(R[i]));
+    if (peak > 0){ const g = 0.9 / peak; for (let i = 0; i < N; i++){ L[i] *= g; R[i] *= g; } }
+    return {L, R};
+  }
+
+  // Render off the main thread so the drone never stutters while retuning.
+  let worker = null, jobId = 0; const jobs = new Map();
+  try {
+    const src = `const renderString = ${renderString.toString()};
+      onmessage = e => { const d = e.data; const r = renderString(d.f, d.bright, d.dur, d.sr, d.seed);
+        postMessage({id: d.id, L: r.L, R: r.R}, [r.L.buffer, r.R.buffer]); };`;
+    worker = new Worker(URL.createObjectURL(new Blob([src], {type:'text/javascript'})));
+    worker.onmessage = e => { const j = jobs.get(e.data.id); if (j){ jobs.delete(e.data.id); j(e.data); } };
+    worker.onerror = () => { worker = null; };
+  } catch (e) { worker = null; }
+  function renderAsync(f, bright, dur, seed){
+    const sr = ctx.sampleRate;
+    if (!worker) return new Promise(r => setTimeout(() => r(renderString(f, bright, dur, sr, seed)), 0));
+    return new Promise(r => { const id = ++jobId; jobs.set(id, r); worker.postMessage({id, f, bright, dur, sr, seed}); });
+  }
+  function toBuffer(r){
+    const b = ctx.createBuffer(2, r.L.length, ctx.sampleRate);
+    b.getChannelData(0).set(r.L); b.getChannelData(1).set(r.R);
+    return b;
+  }
+
+  async function rebuild(){
+    if (!ctx) return;
+    const token = ++renderToken;
+    $('status').textContent = 'Tuning the strings…';
+    const hz = stringHz();
+    const dur = Math.max(6, state.cycle + 3);
+    const j = state.jivari;
+    // the two madhya Sa strings are a hair apart, as on a real instrument, so they shimmer together
+    const parts = await Promise.all([
+      renderAsync(hz[0], j, dur, 101),
+      renderAsync(hz[1], j, dur, 202),
+      renderAsync(hz[2] * Math.pow(2, 0.6 / 1200), j, dur, 303),
+      renderAsync(hz[3], j * 0.92, dur, 404),
+    ]);
+    if (token !== renderToken) return;
+    buffers = parts.map(toBuffer);
+    $('status').textContent = state.playing ? `Playing · ${TUNINGS[state.tuning].name} · Sa · Sa · low Sa` : 'Ready';
+  }
+
+  function pluck(i, when){
+    const src = ctx.createBufferSource(); src.buffer = buffers[i];
+    src.playbackRate.value = 1 + (Math.random() - 0.5) * 0.0006;
+    const g = ctx.createGain();
+    const vel = [0.82, 0.7, 0.66, 0.95][i] * (0.92 + Math.random() * 0.08);
+    g.gain.setValueAtTime(vel, when);
+    const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+    if (pan){ pan.pan.value = [-0.22, -0.07, 0.07, 0.22][i]; src.connect(g); g.connect(pan); pan.connect(master); }
+    else { src.connect(g); g.connect(master); }
+    const prev = lastVoice[i];
+    if (prev){ try { prev.g.gain.setTargetAtTime(0, when, 0.03); prev.src.stop(when + 0.3); } catch (e) {} }
+    src.start(when);
+    lastVoice[i] = {src, g};
+    events.push({t: when, i});
+  }
+
+  function scheduler(){
+    if (!buffers) return;
+    while (nextTime < ctx.currentTime + 0.15){
+      pluck(step, nextTime + (Math.random() - 0.5) * 0.012);
+      step++;
+      if (step === 4){ step = 0; cycleStart += state.cycle; }
+      nextTime = cycleStart + PATTERN[step] * state.cycle;
+    }
+  }
+
+  async function start(){
+    ensureCtx();
+    try { await ctx.resume(); } catch (e) {}
+    state.playing = true; updatePlay();
+    if (!buffers) await rebuild();
+    cycleStart = ctx.currentTime + 0.08; step = 0; nextTime = cycleStart;
+    clearInterval(schedTimer); schedTimer = setInterval(scheduler, 25); scheduler();
+    $('status').textContent = `Playing · ${TUNINGS[state.tuning].name} · Sa · Sa · low Sa`;
+  }
+  function stop(){
+    state.playing = false; updatePlay();
+    clearInterval(schedTimer); schedTimer = null;
+    const now = ctx ? ctx.currentTime : 0;
+    lastVoice.forEach((v, i) => { if (v){ try { v.g.gain.setTargetAtTime(0, now, 0.4); v.src.stop(now + 2.5); } catch (e) {} lastVoice[i] = null; } });
+    $('status').textContent = 'Stopped';
+  }
+  function updatePlay(){
+    $('play').setAttribute('aria-pressed', state.playing ? 'true' : 'false');
+    $('playIcon').textContent = state.playing ? '■' : '▶';
+    $('playText').textContent = state.playing ? 'Stop' : 'Play tambura';
+  }
+
+  async function playSwara(sw, el){
+    ensureCtx(); try { await ctx.resume(); } catch (e) {}
+    const f = saHz() * sw.v;
+    const buf = toBuffer(await renderAsync(f, 0.3, 3.4, 500 + Math.floor(Math.random() * 1000)));
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const g = ctx.createGain(); g.gain.value = 0.55;
+    src.connect(g); g.connect(master); src.start();
+    swEls.forEach(x => x.classList.toggle('ring', x === el));
+  }
+
+  // ---------- controls ----------
+  function changed(needsRebuild){ render(); save(); if (needsRebuild && ctx) rebuild(); }
+  function setKattai(id){ state.kattai = id; changed(true); }
+  $('play').addEventListener('click', () => state.playing ? stop() : start());
+  document.querySelectorAll('#tuning button').forEach(b => b.addEventListener('click', () => { state.tuning = b.dataset.t; changed(true); }));
+  $('fine').addEventListener('input', e => { state.cents = +e.target.value; render(); });
+  $('fine').addEventListener('change', () => changed(true));
+  $('tempo').addEventListener('input', e => { state.cycle = +e.target.value; render(); });
+  $('tempo').addEventListener('change', () => changed(true));
+  $('jivari').addEventListener('input', e => { state.jivari = +e.target.value; render(); });
+  $('jivari').addEventListener('change', () => changed(true));
+  $('vol').addEventListener('input', e => { state.vol = +e.target.value; if (master) master.gain.setTargetAtTime(state.vol, ctx.currentTime, 0.05); render(); save(); });
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.code === 'Space'){ e.preventDefault(); state.playing ? stop() : start(); }
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft'){
+      const i = KATTAI.findIndex(x => x.id === state.kattai) + (e.key === 'ArrowRight' ? 1 : -1);
+      if (i >= 0 && i < KATTAI.length){ e.preventDefault(); setKattai(KATTAI[i].id); keyEls[KATTAI[i].id].focus(); }
+    }
+  });
+
+  // ---------- strings drawing ----------
+  const cv = $('strings'), g2 = cv.getContext('2d');
+  const energy = [0, 0, 0, 0];
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function size(){
+    const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    g2.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', size); size();
+  let tPrev = performance.now();
+  // Close-up of an upright tambura: neck above, soundboard and bridge below.
+  let inst = null, geo = null;
+  function buildInstrument(){
+    const W = cv.clientWidth, H = cv.clientHeight, dpr = window.devicePixelRatio || 1;
+    inst = document.createElement('canvas'); inst.width = W * dpr; inst.height = H * dpr;
+    const c = inst.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const cx = W / 2;
+    const neckW = Math.min(W * 0.62, 300);
+    const boardTop = H * 0.62;            // where the soundboard begins (at centre)
+    const bridgeY = H * 0.78;
+    const spreadB = Math.min(neckW * 0.2, 54), spreadT = spreadB * 0.72;
+    geo = {W, H, cx, bridgeY, spreadB, spreadT};
+
+    // dark room behind
+    c.fillStyle = '#141623'; c.fillRect(0, 0, W, H);
+    // neck: a rounded wooden column, lit from the centre
+    const ng = c.createLinearGradient(cx - neckW / 2, 0, cx + neckW / 2, 0);
+    ng.addColorStop(0, '#2a1a10'); ng.addColorStop(0.18, '#5b3a22'); ng.addColorStop(0.5, '#7a4f2e');
+    ng.addColorStop(0.82, '#5b3a22'); ng.addColorStop(1, '#2a1a10');
+    c.fillStyle = ng; c.fillRect(cx - neckW / 2, 0, neckW, boardTop + 20);
+    // fine grain
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    c.lineWidth = 1;
+    for (let k = 0; k < 26; k++){
+      const x = cx - neckW / 2 + rnd() * neckW;
+      c.strokeStyle = `rgba(20,10,4,${0.06 + rnd() * 0.08})`;
+      c.beginPath(); c.moveTo(x, 0);
+      c.bezierCurveTo(x + (rnd() - .5) * 8, boardTop * 0.3, x + (rnd() - .5) * 8, boardTop * 0.7, x + (rnd() - .5) * 6, boardTop + 20);
+      c.stroke();
+    }
+    // soundboard (tabli): curved top edge where the neck meets the gourd
+    const sg = c.createRadialGradient(cx, H * 1.25, H * 0.2, cx, H * 1.1, H * 0.95);
+    sg.addColorStop(0, '#d2a86e'); sg.addColorStop(0.7, '#b0834c'); sg.addColorStop(1, '#8a6136');
+    c.fillStyle = sg;
+    c.beginPath(); c.moveTo(0, H); c.lineTo(0, boardTop + H * 0.16);
+    c.quadraticCurveTo(cx, boardTop - H * 0.12, W, boardTop + H * 0.16); c.lineTo(W, H); c.closePath(); c.fill();
+    c.strokeStyle = 'rgba(60,35,18,.55)'; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(0, boardTop + H * 0.16); c.quadraticCurveTo(cx, boardTop - H * 0.12, W, boardTop + H * 0.16); c.stroke();
+    // bridge (bone), with its shadow
+    const bw = spreadB * 4.4, bh = 9;
+    c.fillStyle = 'rgba(40,22,10,.35)'; c.beginPath(); c.roundRect(cx - bw / 2 + 2, bridgeY - bh / 2 + 4, bw, bh, 3); c.fill();
+    const bg = c.createLinearGradient(0, bridgeY - bh / 2, 0, bridgeY + bh / 2);
+    bg.addColorStop(0, '#f6eedc'); bg.addColorStop(1, '#d8cab0');
+    c.fillStyle = bg; c.beginPath(); c.roundRect(cx - bw / 2, bridgeY - bh / 2, bw, bh, 3); c.fill();
+    // soft vignette at the edges
+    const vg = c.createLinearGradient(0, 0, W, 0);
+    vg.addColorStop(0, 'rgba(20,22,35,.85)'); vg.addColorStop(0.12, 'rgba(20,22,35,0)');
+    vg.addColorStop(0.88, 'rgba(20,22,35,0)'); vg.addColorStop(1, 'rgba(20,22,35,.85)');
+    c.fillStyle = vg; c.fillRect(0, 0, W, H);
+  }
+  function stringX(i, y){
+    const {cx, bridgeY, spreadB, spreadT} = geo;
+    const off = i - 1.5;
+    if (y <= bridgeY) return cx + off * (spreadT + (spreadB - spreadT) * (y / bridgeY));
+    return cx + off * spreadB * (1 - 0.25 * (y - bridgeY) / (geo.H - bridgeY));
+  }
+  window.addEventListener('resize', buildInstrument);
+
+  function draw(now){
+    const dt = Math.min(0.05, (now - tPrev) / 1000); tPrev = now;
+    if (ctx){
+      while (events.length && events[0].t <= ctx.currentTime){ energy[events.shift().i] = 1; }
+    }
+    const W = cv.clientWidth, H = cv.clientHeight;
+    if (!inst || !geo || geo.W !== W || geo.H !== H) buildInstrument();
+    g2.clearRect(0, 0, W, H);
+    g2.drawImage(inst, 0, 0, W, H);
+    const {bridgeY} = geo;
+    const names = [TUNINGS[state.tuning].name, 'Sa', 'Sa', 'Sa'];
+    const hz = stringHz();
+    const N = 60;
+    for (let i = 0; i < 4; i++){
+      const e = energy[i];
+      const maxAmp = reduce ? 0 : e * (5 + i * 0.6) * (i === 3 ? 1.25 : 1);
+      const width = [2.2, 1.7, 1.7, 2.8][i];
+      // vibrating blur: the string's envelope, fullest at the middle of the visible length
+      if (maxAmp > 0.2){
+        g2.beginPath();
+        for (let s = 0; s <= N; s++){ const y = -20 + (bridgeY + 20) * s / N; g2.lineTo(stringX(i, y) - Math.sin(Math.PI * (0.25 + 0.75 * s / N)) * maxAmp, y); }
+        for (let s = N; s >= 0; s--){ const y = -20 + (bridgeY + 20) * s / N; g2.lineTo(stringX(i, y) + Math.sin(Math.PI * (0.25 + 0.75 * s / N)) * maxAmp, y); }
+        g2.closePath(); g2.fillStyle = `rgba(245,236,214,${0.08 + e * 0.12})`; g2.fill();
+      }
+      const wob = Math.sin(now / 1000 * (hz[i] / 4) + i * 1.7);
+      g2.beginPath();
+      for (let s = 0; s <= N; s++){
+        const y = -20 + (bridgeY + 20) * s / N;
+        const x = stringX(i, y) + Math.sin(Math.PI * (0.25 + 0.75 * s / N)) * maxAmp * wob;
+        s ? g2.lineTo(x, y) : g2.moveTo(x, y);
+      }
+      g2.lineTo(stringX(i, H + 2), H + 2);
+      // metallic string: a bright core over a darker edge
+      g2.lineWidth = width + 1.2; g2.strokeStyle = 'rgba(30,18,10,.45)'; g2.stroke();
+      g2.lineWidth = width; g2.strokeStyle = i === 3 || i === 0 ? `rgba(226,196,140,${0.8 + e * 0.2})` : `rgba(240,234,222,${0.8 + e * 0.2})`;
+      g2.shadowColor = 'rgba(217,164,65,.95)'; g2.shadowBlur = e * 14;
+      g2.stroke(); g2.shadowBlur = 0;
+      // cotton thread (jīva) under the string at the bridge
+      g2.strokeStyle = 'rgba(255,252,244,.9)'; g2.lineWidth = 1.2;
+      const bx = stringX(i, bridgeY);
+      g2.beginPath(); g2.moveTo(bx - 5, bridgeY + 1); g2.lineTo(bx + 5, bridgeY - 1); g2.stroke();
+      // label under the bridge
+      const label = (i === 0 || i === 3) ? `${names[i]}̣` : names[i];
+      g2.font = '600 14px Mukta, sans-serif'; g2.textAlign = 'center'; g2.textBaseline = 'alphabetic';
+      g2.fillStyle = e > 0.08 ? '#3a2410' : 'rgba(58,36,16,.55)';
+      g2.fillText(label, stringX(i, H - 14) + (i - 1.5) * 4, H - 12);
+      energy[i] = Math.max(0, e - dt * 0.55);
+    }
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+
+  render();
+})();
+</script>
+</body>
+</html>
