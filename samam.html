@@ -35,23 +35,41 @@ button{font:inherit;color:inherit}
 .label{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
 
 /* top bar */
-.bar{display:flex;align-items:center;gap:8px}
+.bar{display:flex;align-items:center;gap:8px;align-self:start;justify-self:end}
 .icon{width:34px;height:34px;border-radius:50%;border:1px solid var(--rule);background:var(--surface);color:var(--ink);cursor:pointer;display:grid;place-items:center;font-family:var(--serif);font-size:1.1rem;padding:0}
 .icon:hover{border-color:var(--ink)}
 .icon svg{width:16px;height:16px}
-.bar .kicker{margin-left:8px}
+
+.bar{position:relative}
+.dl{position:absolute;top:44px;right:0;z-index:20;width:min(460px,calc(100vw - 44px));background:var(--surface);border:1px solid var(--rule);border-radius:14px;box-shadow:0 18px 40px rgba(0,0,0,.28);padding:14px 14px 10px;display:grid;gap:8px}
+.dl[hidden]{display:none}
+.dl .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.dl h3{font-family:var(--serif);font-weight:500;font-size:1.25rem;color:var(--ink);margin:0}
+.dl .hint{font-size:.8rem;color:var(--muted);margin:0}
+.dl ul{list-style:none;margin:0;padding:0;display:grid}
+.dl li{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center;padding:8px 8px;border-radius:10px}
+.dl li + li{border-top:1px solid var(--rule)}
+.dl li.cur{background:var(--t-on)}
+.dl .nm{border:none;background:none;padding:0;text-align:left;cursor:pointer;font-family:var(--serif);font-size:1.08rem;color:var(--ink)}
+.dl .nm:hover{text-decoration:underline;text-underline-offset:3px}
+.dl .st{grid-column:1;font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.dl .btns{grid-row:1 / span 2;grid-column:2;display:flex;gap:6px}
+.dl .btns a{font-size:.8rem;text-decoration:none;color:var(--ink);border:1px solid var(--rule);border-radius:999px;padding:3px 10px;white-space:nowrap}
+.dl .btns a:hover{border-color:var(--ink)}
+.dl .foot{font-size:.76rem;color:var(--muted);border-top:1px solid var(--rule);padding-top:8px}
 
 /* header */
-header{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px 40px;align-items:end;padding-bottom:16px;border-bottom:1px solid var(--rule)}
+header{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:16px 28px;align-items:center;padding:6px 0 18px;border-bottom:1px solid var(--rule)}
+.ttl .kicker{display:block;margin-bottom:6px}
 h1{font-family:var(--serif);font-weight:500;font-size:clamp(2.6rem,6vw,3.8rem);color:var(--ink);margin:0;line-height:1}
 .sub{font-family:var(--serif);font-style:italic;font-size:1.2rem;color:var(--text);margin-top:4px}
 .byline{font-size:.84rem;color:var(--muted);margin-top:6px}
 .byline b{font-weight:500;color:var(--text)}
-.score{display:grid;grid-template-columns:repeat(3,auto);gap:6px 26px}
-.score div{display:grid;line-height:1.15}
+.score{display:grid;grid-template-columns:repeat(6,minmax(78px,auto));gap:8px}
+.score div{display:grid;justify-items:center;text-align:center;line-height:1.15;border:1px solid var(--rule);background:var(--surface);border-radius:12px;padding:9px 10px 8px}
 .score b{font-family:var(--serif);font-weight:500;font-size:1.7rem;color:var(--ink);font-variant-numeric:lining-nums}
-.score span{font-size:.8rem;color:var(--muted)}
-.score i{font-style:normal;opacity:.75}
+.score span{font-size:.76rem;color:var(--muted)}
+.score i{font-style:normal;opacity:.75;display:block;font-size:.7rem}
 
 /* main */
 .main{display:grid;grid-template-columns:minmax(380px,0.92fr) minmax(0,1.08fr);gap:20px;align-items:stretch}
@@ -174,11 +192,13 @@ kbd{font-family:var(--sans);border:1px solid var(--rule);border-radius:5px;paddi
 .src p{max-width:none}
 
 @media (max-width:1020px){
+  header{grid-template-columns:minmax(0,1fr) auto}
+  .score{grid-column:1 / -1;grid-row:2;grid-template-columns:repeat(6,minmax(0,1fr))}
   .main{grid-template-columns:1fr}
   .notes{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media (max-width:640px){
-  header{grid-template-columns:1fr}
+  .score{grid-template-columns:repeat(3,minmax(0,1fr))}
   .stage{grid-template-columns:1fr}
   .wheel{max-width:270px;justify-self:center}
   .notes{grid-template-columns:1fr}
@@ -190,14 +210,10 @@ kbd{font-family:var(--sans);border:1px solid var(--rule);border-radius:5px;paddi
 <body>
 <div class="wrap">
 
-<div class="bar">
-  <button class="icon" id="guideBtn" type="button" aria-label="Open the guide" aria-haspopup="dialog">?</button>
-  <button class="icon" id="themeBtn" type="button" aria-label="Switch to light mode"></button>
-  <span class="label kicker">35 Tāḷas · Carnatic Classical Music</span>
-</div>
 
 <header>
-  <div>
+  <div class="ttl">
+    <span class="label kicker">35 Tāḷas · Carnatic Classical Music</span>
     <h1>Samam</h1>
     <div class="sub">Tāḷam Explorer · 35 tāḷas, 175 rhythms, one point of return</div>
     <div class="byline">Visualisation by <b>Lakshmi Ganesan</b> · v1.0 · 11 November 2026</div>
@@ -209,6 +225,17 @@ kbd{font-family:var(--sans);border:1px solid var(--rule);border-radius:5px;paddi
     <div><b>35</b><span>tāḷas <i>7 × 5</i></span></div>
     <div><b>5</b><span>nadais</span></div>
     <div><b>175</b><span>rhythms <i>35 × 5</i></span></div>
+  </div>
+  <div class="bar">
+  <button class="icon" id="guideBtn" type="button" aria-label="Open the guide" aria-haspopup="dialog">?</button>
+  <button class="icon" id="themeBtn" type="button" aria-label="Switch to light mode"></button>
+  <button class="icon" id="dlBtn" type="button" aria-label="Notation templates" aria-haspopup="true" aria-expanded="false" aria-controls="dlPanel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <div class="dl" id="dlPanel" hidden>
+    <div class="top"><h3>Notation templates</h3><button class="close" type="button" id="dlClose">✕ Close</button></div>
+    <p class="hint">One āvartanam per line, as a PDF sized for the iPad. Tap a name to open it in the explorer.</p>
+    <ul id="dlList"></ul>
+    <div class="foot">Templates are added as each tāḷa is learnt, sung and tested · Notation templates by Lakshmi Ganesan</div>
+  </div>
   </div>
 </header>
 
@@ -289,6 +316,7 @@ kbd{font-family:var(--sans);border:1px solid var(--rule);border-radius:5px;paddi
     <p>The Chāpu tāḷas are kept by beats rather than aṅgas: Khaṇḍa Chāpu (ta-ka · ta-ki-ta, 2 + 3), Miśra Chāpu (ta-ki-ta · ta-ka-di-mi, 3 + 4) and Viloma Chāpu, its reverse (ta-ka-di-mi · ta-ki-ta, 4 + 3). Rūpaka is also often kept as three beats in practice.</p>
     <h3>How to use it</h3>
     <p>Tap any number in the matrix to hear that tāḷa. Follow the wheel and the line of counts beneath it, and try keeping the tāḷam with your own hand. Switch the sound to Konnakol to hear the cycle as spoken strokes. Somewhere in the second or third cycle the counting gives way to listening, and you find yourself waiting for samam.</p>
+    <p class="keys">The download icon at the top left lists the notation templates available so far, as PDFs sized for the iPad.</p>
     <p class="keys">No sound on an iPhone or iPad? Turn the volume up; the page plays through the media channel, so it should sound even with the ring/silent switch on.</p>
     <p class="keys"><kbd>Space</kbd> play or stop · <kbd>←</kbd> <kbd>→</kbd> change jāti · <kbd>↑</kbd> <kbd>↓</kbd> change tāḷa family</p>
     <button class="go" type="button" id="guideGo">Begin with Ādi</button>
@@ -619,6 +647,41 @@ function playSol(list, btn){
   solT=setTimeout(stopSol,(reps*list.length*step+.2)*1000);
 }
 
+/* ---------- notation templates ---------- */
+const TEMPLATES = [
+  {name:"Cover page", st:"Song · date · rāgam · ārohaṇam / avarohaṇam · tāḷam · composer · notes", file:"cover-page", sel:null},
+  {name:"Plain grid", st:"No tāḷa cycle · free-flowing notation · with date", file:"plain-grid", sel:null},
+  {name:"Ādi Tāḷam", st:"Chaturasra Jāti Triputa · 4 + 2 + 2 · Chaturasra nadai · 32", file:"adi-talam", sel:{tala:4,jati:1,nadai:1}},
+  {name:"Tisra Jāti Triputa", st:"3 + 2 + 2 · Chaturasra nadai · 28", file:"tisra-triputa-talam", sel:{tala:4,jati:0,nadai:1}},
+  {name:"Khaṇḍa Jāti Triputa", st:"5 + 2 + 2 · Chaturasra nadai · 36", file:"khanda-triputa-talam", sel:{tala:4,jati:2,nadai:1}},
+  {name:"Rūpaka Tāḷam", st:"Chaturasra Jāti · 2 + 4 · Chaturasra nadai · 24", file:"rupaka-talam", sel:{tala:2,jati:1,nadai:1}},
+  {name:"Miśra Jāti Jhampa", st:"7 + 1 + 2 · Chaturasra nadai · 40", file:"misra-jhampa-talam", sel:{tala:3,jati:3,nadai:1}},
+  {name:"Miśra Chāpu", st:"3 + 4 · Chaturasra nadai · 28", file:"misra-chapu-talam", sel:{group:"misra",nadai:1}},
+  {name:"Khaṇḍa Chāpu", st:"2 + 3 · Chaturasra nadai · 20", file:"khanda-chapu-talam", sel:{group:"khanda",nadai:1}},
+  {name:"Viloma Chāpu", st:"4 + 3 · Chaturasra nadai · 28", file:"viloma-chapu-talam", sel:{group:"viloma",nadai:1}}
+];
+const TPL_DIR = "templates/";
+const isCur = t => !t.sel ? false : t.sel.group ? (st.group===t.sel.group && st.nadai===t.sel.nadai)
+                               : (!st.group && st.tala===t.sel.tala && st.jati===t.sel.jati && st.nadai===t.sel.nadai);
+function renderDl(){
+  const ul = $("dlList"); ul.innerHTML = "";
+  TEMPLATES.forEach(t => {
+    const li = document.createElement("li"); if (isCur(t)) li.className = "cur";
+    const nm = document.createElement("button"); nm.type="button"; nm.className="nm"; nm.textContent = t.name;
+    nm.addEventListener("click", () => { if (!t.sel){ window.open(`${TPL_DIR}${t.file}-ipad.pdf`, "_blank"); return; } if (t.sel.group){ st.group=t.sel.group; } else { st.group=null; st.tala=t.sel.tala; st.jati=t.sel.jati; } st.nadai=t.sel.nadai; update(); });
+    const sp = document.createElement("span"); sp.className="st"; sp.textContent = t.st;
+    const b = document.createElement("span"); b.className="btns";
+    [["ipad","PDF"]].forEach(([k,l]) => { const a=document.createElement("a"); a.href=`${TPL_DIR}${t.file}-${k}.pdf`; a.setAttribute("download",""); a.target="_blank"; a.rel="noopener"; a.textContent=l; a.setAttribute("aria-label",`Download ${t.name} template (PDF)`); b.append(a); });
+    li.append(nm, b, sp); ul.append(li);
+  });
+}
+const dlP = $("dlPanel"), dlB = $("dlBtn");
+function setDl(open){ dlP.hidden = !open; dlB.setAttribute("aria-expanded", open ? "true":"false"); if (open) renderDl(); }
+dlB.addEventListener("click", e => { e.stopPropagation(); setDl(dlP.hidden); });
+$("dlClose").addEventListener("click", () => setDl(false));
+document.addEventListener("click", e => { if (!dlP.hidden && !dlP.contains(e.target) && e.target !== dlB) setDl(false); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !dlP.hidden) setDl(false); });
+
 /* ---------- guide ---------- */
 const dlg=$("guide");
 const openGuide=()=>{ try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } };
@@ -630,7 +693,7 @@ dlg.addEventListener("click", e => { if (e.target===dlg) closeGuide(); });
 
 /* ---------- wiring ---------- */
 function update(){
-  build(); renderGrid(); renderReadout(); renderStrip(); renderWheel();
+  build(); renderGrid(); renderReadout(); renderStrip(); renderWheel(); if (!dlP.hidden) renderDl();
   if (playing){ queue=[]; pIdx=0; nextT=ac.currentTime+.06; curC=-1; curP=-1; } else resetHL();
 }
 function setVoice(v){ st.voice=v; $("vHands").setAttribute("aria-pressed", v==="hands"?"true":"false"); $("vKon").setAttribute("aria-pressed", v==="kon"?"true":"false"); }
