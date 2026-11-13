@@ -45,7 +45,7 @@ button{font:inherit;color:inherit}
 .icon svg{width:16px;height:16px}
 
 .bar{position:relative}
-.dl{position:absolute;top:44px;right:0;z-index:20;width:min(460px,calc(100vw - 44px));background:var(--surface);border:1px solid var(--rule);border-radius:14px;box-shadow:0 18px 40px rgba(0,0,0,.28);padding:14px 14px 10px;display:grid;gap:8px}
+.dl{position:absolute;top:44px;right:0;max-height:calc(100vh - 90px);overflow:auto;z-index:20;width:min(460px,calc(100vw - 44px));background:var(--surface);border:1px solid var(--rule);border-radius:14px;box-shadow:0 18px 40px rgba(0,0,0,.28);padding:14px 14px 10px;display:grid;gap:8px}
 .dl[hidden]{display:none}
 .dl .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .dl h3{font-family:var(--serif);font-weight:500;font-size:1.25rem;color:var(--ink);margin:0}
@@ -76,7 +76,7 @@ h1{font-family:var(--serif);font-weight:500;font-size:clamp(2.6rem,6vw,3.8rem);c
 .score i{font-style:normal;opacity:.75;display:block;font-size:.7rem}
 
 /* main */
-.main{display:grid;grid-template-columns:minmax(380px,0.92fr) minmax(0,1.08fr);gap:20px;align-items:stretch}
+.main{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(380px,0.92fr);gap:20px;align-items:stretch}
 .card{background:var(--surface);border:1px solid var(--rule);border-radius:16px;padding:18px 18px 16px}
 .choose{display:grid;gap:14px;align-content:start}
 .choose .head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
@@ -236,7 +236,7 @@ kbd{font-family:var(--sans);border:1px solid var(--rule);border-radius:5px;paddi
   <button class="icon" id="dlBtn" type="button" aria-label="Notation templates" aria-haspopup="true" aria-expanded="false" aria-controls="dlPanel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   <div class="dl" id="dlPanel" hidden>
     <div class="top"><h3>Notation templates</h3><button class="close" type="button" id="dlClose">✕ Close</button></div>
-    <p class="hint">One āvartanam per line, as a PDF sized for the iPad. Tap a name to open it in the explorer.</p>
+    <p class="hint">PDFs sized for the iPad: notebook pages first, then one āvartanam per line for each tāḷa. Tap a tāḷa's name to open it in the explorer.</p>
     <ul id="dlList"></ul>
     <div class="foot">Templates are added as each tāḷa is learnt, sung and tested · Notation templates by Lakshmi Ganesan</div>
   </div>
@@ -244,20 +244,6 @@ kbd{font-family:var(--sans);border:1px solid var(--rule);border-radius:5px;paddi
 </header>
 
 <div class="main">
-
-  <section class="card choose" aria-labelledby="chooseH">
-    <div class="head"><span class="label" id="chooseH">Tāḷa–jāti–nadai matrix</span><span class="step">three choices, one rhythm</span></div>
-    <div class="matrix"><table id="grid"></table></div>
-    <div class="divider"></div>
-    <div class="beyond" role="group" aria-label="Beyond the 35"><span class="label">Beyond the 35</span><span id="beyond" style="display:contents"></span></div>
-    <div class="legend" aria-hidden="true">
-      <span><i class="sw" style="background:var(--laghu)"></i>Laghu ǀ · clap + fingers</span>
-      <span><i class="sw" style="background:var(--drutam)"></i>Drutam O · clap + wave</span>
-      <span><i class="sw" style="background:var(--anu)"></i>Anudrutam U · clap</span>
-      <span><i class="sw" style="background:var(--samam)"></i>Samam</span>
-      <span><i class="sw" style="background:var(--drutam);width:5px;height:5px"></i>Often heard</span>
-    </div>
-  </section>
 
   <section class="card avt" aria-labelledby="avtH">
     <div class="head"><h2 id="avtH">Āvartanam</h2><span class="step">one complete cycle</span></div>
@@ -283,6 +269,20 @@ kbd{font-family:var(--sans);border:1px solid var(--rule);border-radius:5px;paddi
     <div class="line">
       <span class="label">The cycle, laid out</span>
       <div class="strip" id="strip"></div>
+    </div>
+  </section>
+
+  <section class="card choose" aria-labelledby="chooseH">
+    <div class="head"><span class="label" id="chooseH">Tāḷa–jāti–nadai matrix</span><span class="step">three choices, one rhythm</span></div>
+    <div class="matrix"><table id="grid"></table></div>
+    <div class="divider"></div>
+    <div class="beyond" role="group" aria-label="Beyond the 35"><span class="label">Beyond the 35</span><span id="beyond" style="display:contents"></span></div>
+    <div class="legend" aria-hidden="true">
+      <span><i class="sw" style="background:var(--laghu)"></i>Laghu ǀ · clap + fingers</span>
+      <span><i class="sw" style="background:var(--drutam)"></i>Drutam O · clap + wave</span>
+      <span><i class="sw" style="background:var(--anu)"></i>Anudrutam U · clap</span>
+      <span><i class="sw" style="background:var(--samam)"></i>Samam</span>
+      <span><i class="sw" style="background:var(--drutam);width:5px;height:5px"></i>Often heard</span>
     </div>
   </section>
 </div>
@@ -692,6 +692,9 @@ function playSol(list, btn){
 const TEMPLATES = [
   {name:"Cover page", st:"Song · date · rāgam · ārohaṇam / avarohaṇam · tāḷam · composer · notes", file:"cover-page", sel:null},
   {name:"Plain grid", st:"No tāḷa cycle · free-flowing notation · with date", file:"plain-grid", sel:null},
+  {name:"Dot grid", st:"No tāḷa cycle · free-flowing notation · with date", file:"dot-grid", sel:null},
+  {name:"Index", st:"No. · song / kṛti · rāgam · tāḷam · composer · language", file:"index-page", sel:null},
+  {name:"Class & practice tracker", st:"Three months per page · calendar, notes and legend", file:"practice-tracker", sel:null},
   {name:"Ādi Tāḷam", st:"Chaturasra Jāti Triputa · 4 + 2 + 2 · Chaturasra nadai · 32", file:"adi-talam", sel:{tala:4,jati:1,nadai:1}},
   {name:"Tisra Jāti Triputa", st:"3 + 2 + 2 · Chaturasra nadai · 28", file:"tisra-triputa-talam", sel:{tala:4,jati:0,nadai:1}},
   {name:"Khaṇḍa Jāti Triputa", st:"5 + 2 + 2 · Chaturasra nadai · 36", file:"khanda-triputa-talam", sel:{tala:4,jati:2,nadai:1}},
