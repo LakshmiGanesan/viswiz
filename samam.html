@@ -45,22 +45,6 @@ button{font:inherit;color:inherit}
 .icon svg{width:16px;height:16px}
 
 .bar{position:relative}
-.dl{position:absolute;top:44px;right:0;max-height:calc(100vh - 90px);overflow:auto;z-index:20;width:min(460px,calc(100vw - 44px));background:var(--surface);border:1px solid var(--rule);border-radius:14px;box-shadow:0 18px 40px rgba(0,0,0,.28);padding:14px 14px 10px;display:grid;gap:8px}
-.dl[hidden]{display:none}
-.dl .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-.dl h3{font-family:var(--serif);font-weight:500;font-size:1.25rem;color:var(--ink);margin:0}
-.dl .hint{font-size:.8rem;color:var(--muted);margin:0}
-.dl ul{list-style:none;margin:0;padding:0;display:grid}
-.dl li{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center;padding:8px 8px;border-radius:10px}
-.dl li + li{border-top:1px solid var(--rule)}
-.dl li.cur{background:var(--t-on)}
-.dl .nm{border:none;background:none;padding:0;text-align:left;cursor:pointer;font-family:var(--serif);font-size:1.08rem;color:var(--ink)}
-.dl .nm:hover{text-decoration:underline;text-underline-offset:3px}
-.dl .st{grid-column:1;font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
-.dl .btns{grid-row:1 / span 2;grid-column:2;display:flex;gap:6px}
-.dl .btns a{font-size:.8rem;text-decoration:none;color:var(--ink);border:1px solid var(--rule);border-radius:999px;padding:3px 10px;white-space:nowrap}
-.dl .btns a:hover{border-color:var(--ink)}
-.dl .foot{font-size:.76rem;color:var(--muted);border-top:1px solid var(--rule);padding-top:8px}
 
 /* header */
 header{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:16px 28px;align-items:center;padding:6px 0 18px;border-bottom:1px solid var(--rule)}
@@ -126,7 +110,8 @@ tfoot .jc{display:block}
 .read{display:grid;gap:10px;align-content:center}
 .title{font-family:var(--serif);font-size:1.45rem;color:var(--ink);line-height:1.15}
 .alias{font-family:var(--serif);font-style:italic;color:var(--muted);font-size:1.02rem}
-.alias:empty{display:none}
+.title{min-height:2.32em}
+.alias{min-height:2.6em}
 .formula{font-variant-numeric:tabular-nums;font-size:.93rem;line-height:1.6}
 .formula b{color:var(--ink);font-weight:600}
 .kon{display:grid;gap:3px}
@@ -209,6 +194,22 @@ kbd{font-family:var(--sans);border:1px solid var(--rule);border-radius:5px;paddi
   .count{width:48px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* fixed slots, sized for the longest case, so nothing below moves as text changes */
+.title{height:2.32em;overflow:hidden}
+.alias{height:2.6em;min-height:0;overflow:hidden;line-height:1.3}
+.formula{height:6.5em;overflow:hidden}
+.kline{height:3.6em;align-content:flex-start;overflow:hidden}
+.kline.long span{font-size:.9rem;padding:0 2px}
+.kline.xlong span{font-size:.8rem;padding:0 1px}
+.now{height:4.4em;align-items:flex-start;overflow:hidden}
+.now .a{display:inline-block;line-height:1.25}
+.ctrl{min-height:88px;align-content:center}
+.ctrl .row2{min-height:30px}
+.avt{container-type:inline-size}
+@container (max-width: 540px){
+  .stage{grid-template-columns:1fr}
+  .wheel{max-width:270px;justify-self:center}
+}
 </style>
 </head>
 <body>
@@ -233,13 +234,6 @@ kbd{font-family:var(--sans);border:1px solid var(--rule);border-radius:5px;paddi
   <div class="bar">
   <button class="icon" id="guideBtn" type="button" aria-label="Open the guide" aria-haspopup="dialog">?</button>
   <button class="icon" id="themeBtn" type="button" aria-label="Switch to light mode"></button>
-  <button class="icon" id="dlBtn" type="button" aria-label="Notation templates" aria-haspopup="true" aria-expanded="false" aria-controls="dlPanel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-  <div class="dl" id="dlPanel" hidden>
-    <div class="top"><h3>Notation templates</h3><button class="close" type="button" id="dlClose">✕ Close</button></div>
-    <p class="hint">PDFs sized for the iPad: notebook pages first, then one āvartanam per line for each tāḷa. Tap a tāḷa's name to open it in the explorer.</p>
-    <ul id="dlList"></ul>
-    <div class="foot">Templates are added as each tāḷa is learnt, sung and tested · Notation templates by Lakshmi Ganesan</div>
-  </div>
   </div>
 </header>
 
@@ -259,7 +253,6 @@ kbd{font-family:var(--sans);border:1px solid var(--rule);border-radius:5px;paddi
         <div class="now" aria-hidden="true"><span class="n" id="nowN">1</span><span><span class="g" id="nowG">Clap</span><br><span class="a" id="nowA">Samam</span></span></div>
       </div>
     </div>
-    <div class="note" id="note"></div>
     <div class="ctrl">
       <button class="play" id="play" aria-pressed="false" aria-label="Play"></button>
       <div class="laya"><span class="label">Laya</span><input type="range" id="laya" min="30" max="140" step="2" value="60" aria-label="Laya: counts per minute"><output id="layaOut" for="laya">60 / min</output></div>
@@ -270,6 +263,7 @@ kbd{font-family:var(--sans);border:1px solid var(--rule);border-radius:5px;paddi
       <span class="label">The cycle, laid out</span>
       <div class="strip" id="strip"></div>
     </div>
+    <div class="note" id="note"></div>
   </section>
 
   <section class="card choose" aria-labelledby="chooseH">
@@ -309,25 +303,15 @@ kbd{font-family:var(--sans);border:1px solid var(--rule);border-radius:5px;paddi
   <div class="guide">
     <div class="top"><span class="label">A guide for the curious</span><button class="close" type="button" id="guideClose">✕ Close</button></div>
     <h2 id="guideTitle">Why “Samam”?</h2>
-    <p>Watch a Carnatic singer and you will see a hand moving quietly on her lap: a clap, a ripple of fingers, a turn of the palm, and then the same again. That hand is keeping <em>tāḷam</em>, and however far the music wanders, it keeps returning to one place, the first count of the cycle. That count is the <em>samam</em>. This explorer is named after it.</p>
-    <h3>What is tāḷam?</h3>
-    <p>Tāḷam is the framework that organises musical time. If rāgam gives a composition its melodic shape, tāḷam gives it a rhythmic one. A tāḷa is a pattern of units measured in basic counts, or <em>aksharas</em>. One complete turn of the pattern is an <em>āvartanam</em>, the wheel at the centre of this page.</p>
-    <h3>Three choices make every rhythm here</h3>
-    <p><b>Tāḷa family</b> (rows). Three <em>aṅgas</em> build every tāḷa: the <span style="color:var(--laghu)">laghu ǀ</span>, a clap and finger counts of variable length; the <span style="color:var(--drutam)">drutam O</span>, a clap and a wave, always two counts; and the <span style="color:var(--anu)">anudrutam U</span>, a single clap. Arranged in seven ways they give the Sulādi Sapta Tāḷas, from Dhruva to Eka.</p>
-    <p><b>Jāti</b> (columns). The laghu can hold 3, 4, 5, 7 or 9 counts, each with its own syllables, or <em>solkattu</em>. Seven families in five jātis make 35 tāḷas, from 3 counts (Tisra Eka) to 29 (Saṅkīrṇa Dhruva). Ādi Tāḷam is Chaturasra Jāti Triputa, 4 + 2 + 2 = 8, and the page opens there.</p>
-    <p><b>Nadai</b> (the row beneath the matrix, its third dimension). Jāti sets how long the cycle is; nadai sets how many pulses fill each count. Change it and the hands keep the same counts, only the rhythm inside them changes. 35 tāḷas in five nadais make 175. Speed, or <em>laya</em>, is a separate dial.</p>
-    <h3>Beyond the 35</h3>
-    <p>The Chāpu tāḷas are kept by beats rather than aṅgas: Khaṇḍa Chāpu (ta-ka · ta-ki-ta, 2 + 3), Miśra Chāpu (ta-ki-ta · ta-ka-di-mi, 3 + 4) and Viloma Chāpu, its reverse (ta-ka-di-mi · ta-ki-ta, 4 + 3). Rūpaka is also often kept as three beats in practice.</p>
-    <h3>How to use it</h3>
-    <p>Tap any number in the matrix to hear that tāḷa. Follow the wheel and the line of counts beneath it, and try keeping the tāḷam with your own hand. Switch the sound to Konnakol to hear the syllables recited while the hands keep tāḷam softly: with nadai pulses on, ta-ka-di-mi in every count; with them off, the cycle's own konnakol, one syllable per count. Somewhere in the second or third cycle the counting gives way to listening, and you find yourself waiting for samam.</p>
-    <p class="keys">The download icon at the top left lists the notation templates available so far, as PDFs sized for the iPad.</p>
-    <p class="keys">No sound on an iPhone or iPad? Turn the volume up; the page plays through the media channel, so it should sound even with the ring/silent switch on.</p>
-    <p class="keys"><kbd>Space</kbd> play or stop · <kbd>←</kbd> <kbd>→</kbd> change jāti · <kbd>↑</kbd> <kbd>↓</kbd> change tāḷa family</p>
+    <p>A tāḷam is a rhythmic cycle kept with the hand. However far the music wanders, it returns to the first count, the <em>samam</em>. The wheel at the centre is one full cycle, an <em>āvartanam</em>.</p>
+    <h3>Three choices make every rhythm</h3>
+    <p><b>Tāḷa family</b>, the rows: seven patterns built from the <span style="color:var(--laghu)">laghu ǀ</span> (clap and finger counts), <span style="color:var(--drutam)">drutam O</span> (clap and wave) and <span style="color:var(--anu)">anudrutam U</span> (one clap).</p>
+    <p><b>Jāti</b>, the columns: how many counts the laghu holds, 3, 4, 5, 7 or 9. Together they make 35 tāḷas.</p>
+    <p><b>Nadai</b>, the row beneath: how many pulses fill each count. Five nadais take the 35 to 175 rhythms.</p>
+    <h3>How to explore</h3>
+    <p>Tap a number in the matrix to hear that tāḷa, and follow the wheel and the line of counts beneath it. Choose <b>Hands</b> for claps and waves, or <b>Konnakol</b> to hear the syllables recited. <b>Laya</b> sets the speed. The Chāpu tāḷas sit under “Beyond the 35”.</p>
+    <p class="keys"><kbd>Space</kbd> play or stop · <kbd>←</kbd> <kbd>→</kbd> jāti · <kbd>↑</kbd> <kbd>↓</kbd> tāḷa family · No sound on an iPhone or iPad? Turn the volume up.</p>
     <button class="go" type="button" id="guideGo">Begin with Ādi</button>
-    <div class="src">
-      <p>Drawn from the essay <em>Understanding Tāḷam: The Rhythmic Architecture of Carnatic Music</em> by Lakshmi Ganesan. Principal references: P. Sambamoorthy, <em>South Indian Music</em>, Books I and II (Indian Music Publishing House); Śārṅgadeva, <em>Saṅgītaratnākara</em>, Chapter 5, <em>Tālādhyāya</em>.</p>
-      <p>Konnakol of the cycle recites each aṅga as one group, one syllable per count: a laghu by its jāti (ta-ka-di-mi for four), a drutam as ta-ka, an anudrutam as ta. Sounds are synthesised, and the konnakol voice is generated with eSpeak NG's Tamil voice as a stand-in until recordings by a konnakol artist replace it. Finger counting past four varies between teachers.</p>
-    </div>
   </div>
 </dialog>
 
@@ -472,6 +456,8 @@ function renderReadout(){
   $("ttl").textContent = name; $("alias").textContent = alias; $("note").textContent = note;
   $("formula").innerHTML = `<b>${sum} = ${N}</b> counts<br>× ${nd.n} · ${nd.name} nadai <span style="white-space:nowrap">(${SOL[nd.n].join("-")})</span> = <b>${N*nd.n}</b> pulses · ${(N*60/st.bpm).toFixed(1)} s a cycle`;
   const kl = $("kline"); kl.innerHTML = ""; konEls = [];
+  kl.classList.toggle("long", kon.length > 14 && kon.length <= 22);
+  kl.classList.toggle("xlong", kon.length > 22);
   kon.forEach(k => { if (k.brk){ const g = document.createElement("span"); g.className="gap"; kl.append(g); } const e = document.createElement("span"); e.textContent = k.s; kl.append(e); konEls.push(e); });
 }
 
@@ -586,13 +572,32 @@ function noise(t,f,q,dur,g){ const s=ac.createBufferSource(); s.buffer=nb; const
   const G=ac.createGain(); G.gain.setValueAtTime(g,t); G.gain.exponentialRampToValueAtTime(.001,t+dur); s.connect(bp).connect(G).connect(OUT||ac.destination); s.start(t); s.stop(t+dur+.02); }
 function tone(t,f,dur,g,type="sine",f2){ const o=ac.createOscillator(); o.type=type; o.frequency.setValueAtTime(f,t); if (f2) o.frequency.exponentialRampToValueAtTime(f2,t+dur);
   const G=ac.createGain(); G.gain.setValueAtTime(g,t); G.gain.exponentialRampToValueAtTime(.001,t+dur); o.connect(G).connect(OUT||ac.destination); o.start(t); o.stop(t+dur+.02); }
+/* Samam: a synthesised mridangam "tham", the open right-head ring (harmonic, from the soru)
+   struck together with the deep left-head "thom" */
+function mridangam(t){
+  const out=OUT||ac.destination, f0=196;
+  const bus=ac.createGain(); bus.gain.value=.65; bus.connect(out);
+  [[1,.42,1.1],[2,.26,.75],[3,.17,.5],[4,.10,.32],[5,.06,.22]].forEach(([h,g,d])=>{
+    const o=ac.createOscillator(); o.type="sine";
+    o.frequency.setValueAtTime(f0*h*1.012,t); o.frequency.exponentialRampToValueAtTime(f0*h,t+.04);
+    const G=ac.createGain(); G.gain.setValueAtTime(0,t); G.gain.linearRampToValueAtTime(g,t+.004);
+    G.gain.exponentialRampToValueAtTime(.0008,t+d); o.connect(G).connect(bus); o.start(t); o.stop(t+d+.03);
+  });
+  const b=ac.createOscillator(); b.type="sine";
+  b.frequency.setValueAtTime(118,t); b.frequency.exponentialRampToValueAtTime(76,t+.28);
+  const bg=ac.createGain(); bg.gain.setValueAtTime(0,t); bg.gain.linearRampToValueAtTime(.55,t+.006);
+  bg.gain.exponentialRampToValueAtTime(.0008,t+.42); b.connect(bg).connect(bus); b.start(t); b.stop(t+.45);
+  const s=ac.createBufferSource(); s.buffer=nb; const hp=ac.createBiquadFilter(); hp.type="bandpass"; hp.frequency.value=2600; hp.Q.value=.9;
+  const sg=ac.createGain(); sg.gain.setValueAtTime(.32,t); sg.gain.exponentialRampToValueAtTime(.001,t+.025);
+  s.connect(hp).connect(sg).connect(bus); s.start(t); s.stop(t+.04);
+}
 const SND = {
   clap:t=>{noise(t,1300,1.2,.09,.9);noise(t+.008,900,1.5,.07,.5);},
   beat:t=>noise(t,1300,1.2,.09,.9),
   finger:t=>tone(t,1150,.05,.33,"triangle"),
   hold:t=>tone(t,1150,.04,.16,"triangle"),
   wave:t=>noise(t,520,.8,.16,.35),
-  samam:t=>tone(t,150,.35,.5,"sine",90),
+  samam:t=>mridangam(t),
   pulse:t=>tone(t,2400,.025,.1)
 };
 const STROKE = {
@@ -688,44 +693,6 @@ function playSol(list, btn){
   solT=setTimeout(stopSol,(reps*list.length*step+.2)*1000);
 }
 
-/* ---------- notation templates ---------- */
-const TEMPLATES = [
-  {name:"Cover page", st:"Song · date · rāgam · ārohaṇam / avarohaṇam · tāḷam · composer · notes", file:"cover-page", sel:null},
-  {name:"Plain grid", st:"No tāḷa cycle · free-flowing notation · with date", file:"plain-grid", sel:null},
-  {name:"Dot grid", st:"No tāḷa cycle · free-flowing notation · with date", file:"dot-grid", sel:null},
-  {name:"Index", st:"No. · song / kṛti · rāgam · tāḷam · composer · language", file:"index-page", sel:null},
-  {name:"Class & practice tracker", st:"Three months per page · calendar, notes and legend", file:"practice-tracker", sel:null},
-  {name:"Ādi Tāḷam", st:"Chaturasra Jāti Triputa · 4 + 2 + 2 · Chaturasra nadai · 32", file:"adi-talam", sel:{tala:4,jati:1,nadai:1}},
-  {name:"Tisra Jāti Triputa", st:"3 + 2 + 2 · Chaturasra nadai · 28", file:"tisra-triputa-talam", sel:{tala:4,jati:0,nadai:1}},
-  {name:"Khaṇḍa Jāti Triputa", st:"5 + 2 + 2 · Chaturasra nadai · 36", file:"khanda-triputa-talam", sel:{tala:4,jati:2,nadai:1}},
-  {name:"Rūpaka Tāḷam", st:"Chaturasra Jāti · 2 + 4 · Chaturasra nadai · 24", file:"rupaka-talam", sel:{tala:2,jati:1,nadai:1}},
-  {name:"Miśra Jāti Jhampa", st:"7 + 1 + 2 · Chaturasra nadai · 40", file:"misra-jhampa-talam", sel:{tala:3,jati:3,nadai:1}},
-  {name:"Miśra Chāpu", st:"3 + 4 · Chaturasra nadai · 28", file:"misra-chapu-talam", sel:{group:"misra",nadai:1}},
-  {name:"Khaṇḍa Chāpu", st:"2 + 3 · Chaturasra nadai · 20", file:"khanda-chapu-talam", sel:{group:"khanda",nadai:1}},
-  {name:"Viloma Chāpu", st:"4 + 3 · Chaturasra nadai · 28", file:"viloma-chapu-talam", sel:{group:"viloma",nadai:1}}
-];
-const TPL_DIR = "templates/";
-const isCur = t => !t.sel ? false : t.sel.group ? (st.group===t.sel.group && st.nadai===t.sel.nadai)
-                               : (!st.group && st.tala===t.sel.tala && st.jati===t.sel.jati && st.nadai===t.sel.nadai);
-function renderDl(){
-  const ul = $("dlList"); ul.innerHTML = "";
-  TEMPLATES.forEach(t => {
-    const li = document.createElement("li"); if (isCur(t)) li.className = "cur";
-    const nm = document.createElement("button"); nm.type="button"; nm.className="nm"; nm.textContent = t.name;
-    nm.addEventListener("click", () => { if (!t.sel){ window.open(`${TPL_DIR}${t.file}-ipad.pdf`, "_blank"); return; } if (t.sel.group){ st.group=t.sel.group; } else { st.group=null; st.tala=t.sel.tala; st.jati=t.sel.jati; } st.nadai=t.sel.nadai; update(); });
-    const sp = document.createElement("span"); sp.className="st"; sp.textContent = t.st;
-    const b = document.createElement("span"); b.className="btns";
-    [["ipad","PDF"]].forEach(([k,l]) => { const a=document.createElement("a"); a.href=`${TPL_DIR}${t.file}-${k}.pdf`; a.setAttribute("download",""); a.target="_blank"; a.rel="noopener"; a.textContent=l; a.setAttribute("aria-label",`Download ${t.name} template (PDF)`); b.append(a); });
-    li.append(nm, b, sp); ul.append(li);
-  });
-}
-const dlP = $("dlPanel"), dlB = $("dlBtn");
-function setDl(open){ dlP.hidden = !open; dlB.setAttribute("aria-expanded", open ? "true":"false"); if (open) renderDl(); }
-dlB.addEventListener("click", e => { e.stopPropagation(); setDl(dlP.hidden); });
-$("dlClose").addEventListener("click", () => setDl(false));
-document.addEventListener("click", e => { if (!dlP.hidden && !dlP.contains(e.target) && e.target !== dlB) setDl(false); });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && !dlP.hidden) setDl(false); });
-
 /* ---------- guide ---------- */
 const dlg=$("guide");
 const openGuide=()=>{ try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } };
@@ -737,7 +704,7 @@ dlg.addEventListener("click", e => { if (e.target===dlg) closeGuide(); });
 
 /* ---------- wiring ---------- */
 function update(){
-  build(); renderGrid(); renderReadout(); renderStrip(); renderWheel(); if (!dlP.hidden) renderDl();
+  build(); renderGrid(); renderReadout(); renderStrip(); renderWheel();
   if (playing){ queue=[]; pIdx=0; nextT=ac.currentTime+.06; curC=-1; curP=-1; } else resetHL();
 }
 function setVoice(v){ st.voice=v; $("vHands").setAttribute("aria-pressed", v==="hands"?"true":"false"); $("vKon").setAttribute("aria-pressed", v==="kon"?"true":"false"); }
